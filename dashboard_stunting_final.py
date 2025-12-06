@@ -66,14 +66,14 @@ def load_data():
     
     df['kode_kabkota'] = df['kode_kabkota'].astype(str)
     
-    # Risk levels based on WHO/national targets
-    # <10% = Rendah, 10-20% = Sedang, 20-30% = Tinggi, >30% = Sangat Tinggi
+    # Klasifikasi WHO (1995) Technical Report Series No. 854, Table 39
+    # Low (<20%), Medium (20-29%), High (30-39%), Very High (>=40%)
     def get_risk_level(val):
         if pd.isna(val): return "No Data"
-        elif val < 10: return "Rendah"
-        elif val < 20: return "Sedang"
-        elif val < 30: return "Tinggi"
-        else: return "Sangat Tinggi"
+        elif val < 20: return "Rendah"       # Low
+        elif val < 30: return "Sedang"       # Medium
+        elif val < 40: return "Tinggi"       # High
+        else: return "Sangat Tinggi"         # Very High
     
     df['risk_level'] = df['persen_stunting'].apply(get_risk_level)
     
@@ -117,11 +117,13 @@ PREDICTORS = {
     }
 }
 
+# Warna berdasarkan klasifikasi WHO (1995)
+# Ref: Physical Status: The use and interpretation of anthropometry. WHO TRS 854
 RISK_COLORS = {
-    "Rendah": "#ffffb2",
-    "Sedang": "#fecc5c", 
-    "Tinggi": "#fd8d3c",
-    "Sangat Tinggi": "#e31a1c",
+    "Rendah": "#91cf60",         # Low (<20%) - hijau
+    "Sedang": "#fee08b",         # Medium (20-29%) - kuning
+    "Tinggi": "#fc8d59",         # High (30-39%) - oranye
+    "Sangat Tinggi": "#d73027",  # Very High (>=40%) - merah
     "No Data": "#9E9E9E"
 }
 
