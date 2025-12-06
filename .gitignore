@@ -1,0 +1,53 @@
+# Gitignore for Streamlit Dashboard
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large files not needed for deploy
+batas-administrasi-indonesia/
+output_shp/
+dataset/
+*.7z*
+*.zip*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Original large geojson (use simplified version)
+gdf_analisis_stunting_jabar_2024.geojson
+
+# Local scripts
+convert_to_html.py
+simplify_geojson.py
+
+# Reports (not needed for dashboard)
+*.md
+!README.md
+*.Rmd
+*.html
