@@ -1,19 +1,16 @@
 """
 ============================================================================
 DASHBOARD ANALISIS SPASIAL STUNTING JAWA BARAT 2024
-Inspired by: Indonesia Disease Risk Explorer (faradra)
 ============================================================================
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import geopandas as gpd
+import json
 import plotly.express as px
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
-import seaborn as sns
-import json
+from scipy import stats
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -23,58 +20,29 @@ warnings.filterwarnings('ignore')
 # ============================================================================
 st.set_page_config(
     page_title="Stunting Risk Explorer - Jawa Barat 2024",
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ============================================================================
-# CUSTOM CSS
+# CUSTOM CSS - MINIMALIS
 # ============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
     .stApp { font-family: 'Inter', sans-serif; }
     
-    .risk-card {
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 8px;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .metric-card {
-        text-align: center;
-        padding: 20px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         padding: 18px;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-radius: 10px;
+        border: 1px solid #475569;
     }
     
-    div[data-testid="stMetric"] label {
-        color: #6b7280 !important;
-        font-size: 0.85rem !important;
-        font-weight: 500 !important;
-    }
-    
-    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        color: #111827 !important;
-        font-size: 1.4rem !important;
-        font-weight: 700 !important;
-    }
-    
-    div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
-        font-size: 0.75rem !important;
-    }
+    div[data-testid="stMetric"] label { color: #94a3b8 !important; font-size: 0.85rem !important; }
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] { color: #f1f5f9 !important; font-size: 1.3rem !important; font-weight: 600 !important; }
+    div[data-testid="stMetric"] div[data-testid="stMetricDelta"] { font-size: 0.75rem !important; }
     
     .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] { padding: 10px 20px; }
@@ -84,369 +52,331 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# DATA LOADING FUNCTIONS - CACHED
+# DATA LOADING - CACHED
 # ============================================================================
 @st.cache_data
-def load_csv_data():
-    """Load and preprocess CSV data"""
+def load_data():
+    """Load and preprocess data with proper NaN handling"""
     df = pd.read_csv("df_analisis_stunting_jabar_2024.csv")
     
-    # Rename columns - SESUAI DATASET ASLI
+    # Rename columns
     df = df.rename(columns={
         'prevalensi_stunting': 'persen_stunting',
         'persen_rumah_layak': 'persen_rumah_layak_huni'
     })
     
-    # Pastikan tipe data benar
     df['kode_kabkota'] = df['kode_kabkota'].astype(str)
     
-    # Calculate risk levels based on quartiles (seperti referensi)
-    q1 = df['persen_stunting'].quantile(0.25)
-    q2 = df['persen_stunting'].quantile(0.50)
-    q3 = df['persen_stunting'].quantile(0.75)
-    
-    def get_risk_level(value):
-        if pd.isna(value):
-            return "No Data"
-        elif value >= q3:
-            return "Very High Risk"
-        elif value >= q2:
-            return "High Risk"
-        elif value >= q1:
-            return "Medium Risk"
-        else:
-            return "Low Risk"
+    # Risk levels based on WHO/national targets
+    # <10% = Rendah, 10-20% = Sedang, 20-30% = Tinggi, >30% = Sangat Tinggi
+    def get_risk_level(val):
+        if pd.isna(val): return "No Data"
+        elif val < 10: return "Rendah"
+        elif val < 20: return "Sedang"
+        elif val < 30: return "Tinggi"
+        else: return "Sangat Tinggi"
     
     df['risk_level'] = df['persen_stunting'].apply(get_risk_level)
     
     return df
 
 @st.cache_data
-def load_geojson_data():
-    """Load simplified GeoJSON"""
+def load_geojson():
+    """Load GeoJSON"""
     with open("gdf_stunting_simplified.geojson", 'r') as f:
-        geojson = json.load(f)
-    return geojson
+        return json.load(f)
 
-@st.cache_data
-def load_geodataframe():
-    """Load as GeoDataFrame for spatial analysis"""
-    gdf = gpd.read_file("gdf_stunting_simplified.geojson")
-    return gdf
+# ============================================================================
+# VARIABEL PREDIKTOR - BERBASIS REFERENSI PENELITIAN
+# ============================================================================
+# Referensi: UNICEF Framework, de Onis & Branca (2016), Victora et al. (2008)
+
+PREDICTORS = {
+    'persen_miskin': {
+        'label': 'Kemiskinan (%)',
+        'expected_direction': 'positif',
+        'reference': 'UNICEF (2013): Kemiskinan sebagai penyebab dasar (basic cause) stunting',
+        'hypothesis': 'Semakin tinggi kemiskinan, semakin tinggi stunting'
+    },
+    'persen_air_minum_layak': {
+        'label': 'Akses Air Minum Layak (%)',
+        'expected_direction': 'negatif',
+        'reference': 'WHO (2014): Air bersih sebagai faktor underlying cause',
+        'hypothesis': 'Semakin tinggi akses air bersih, semakin rendah stunting'
+    },
+    'persen_rumah_layak_huni': {
+        'label': 'Rumah Layak Huni (%)',
+        'expected_direction': 'negatif',
+        'reference': 'Victora et al. (2008): Kualitas hunian mempengaruhi kesehatan anak',
+        'hypothesis': 'Semakin baik kualitas hunian, semakin rendah stunting'
+    },
+    'kepadatan_penduduk': {
+        'label': 'Kepadatan Penduduk (jiwa/km2)',
+        'expected_direction': 'tidak pasti',
+        'reference': 'Efek ambigu: urbanisasi dapat positif (akses layanan) atau negatif (kemiskinan urban)',
+        'hypothesis': 'Hubungan non-linear dengan stunting'
+    }
+}
+
+RISK_COLORS = {
+    "Rendah": "#ffffb2",
+    "Sedang": "#fecc5c", 
+    "Tinggi": "#fd8d3c",
+    "Sangat Tinggi": "#e31a1c",
+    "No Data": "#9E9E9E"
+}
 
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
-RISK_COLORS = {
-    "Low Risk": "#F6D746",
-    "Medium Risk": "#E55C30",
-    "High Risk": "#84206B",
-    "Very High Risk": "#140B34",
-    "No Data": "#9E9E9E"
-}
+def format_value(val, decimal=1):
+    """Format value, handle NaN"""
+    if pd.isna(val):
+        return "N/A"
+    return f"{val:,.{decimal}f}"
 
-def get_risk_color(risk_level):
-    """Get color for risk level"""
-    return RISK_COLORS.get(risk_level, "#9E9E9E")
+def get_text_color(risk_level):
+    """Get appropriate text color for background"""
+    if risk_level in ["Rendah", "Sedang"]:
+        return "#1f2937"
+    return "#ffffff"
+
+def calculate_correlation(df, x_var, y_var='persen_stunting'):
+    """Calculate correlation with p-value, handle NaN"""
+    valid = df[[x_var, y_var]].dropna()
+    if len(valid) < 3:
+        return np.nan, np.nan
+    r, p = stats.pearsonr(valid[x_var], valid[y_var])
+    return r, p
+
+def run_ols_model(df, predictors, y_var='persen_stunting'):
+    """Run OLS regression with multiple predictors"""
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import r2_score, mean_squared_error
+    
+    # Drop rows with NaN in any predictor or y
+    valid_df = df[[y_var] + predictors].dropna()
+    
+    if len(valid_df) < len(predictors) + 2:
+        return None
+    
+    X = valid_df[predictors].values
+    y = valid_df[y_var].values
+    
+    model = LinearRegression()
+    model.fit(X, y)
+    y_pred = model.predict(X)
+    
+    r2 = r2_score(y, y_pred)
+    adj_r2 = 1 - (1-r2)*(len(y)-1)/(len(y)-len(predictors)-1)
+    rmse = np.sqrt(mean_squared_error(y, y_pred))
+    
+    return {
+        'model': model,
+        'r2': r2,
+        'adj_r2': adj_r2,
+        'rmse': rmse,
+        'n': len(valid_df),
+        'coef': dict(zip(predictors, model.coef_)),
+        'intercept': model.intercept_
+    }
 
 # ============================================================================
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    st.title("📊 Stunting Risk Explorer - Jawa Barat 2024")
+    st.title("Stunting Risk Explorer - Jawa Barat 2024")
+    st.caption("Dashboard Analisis Spasial Prevalensi Stunting Balita")
+    
+    # Load data
+    df = load_data()
+    geojson = load_geojson()
     
     # =========================================================================
     # SIDEBAR
     # =========================================================================
-    st.sidebar.header("⚙️ Pengaturan")
+    st.sidebar.header("Pengaturan")
     
-    # Variable selection - SESUAI KOLOM DATASET
-    var_options = {
-        'persen_stunting': '📊 Prevalensi Stunting (%)',
-        'kepadatan_penduduk': '👥 Kepadatan Penduduk (jiwa/km²)',
-        'persen_air_minum_layak': '💧 Akses Air Minum Layak (%)',
-        'persen_miskin': '💰 Penduduk Miskin (%)',
-        'persen_rumah_layak_huni': '🏠 Rumah Layak Huni (%)',
-        'persen_sanitasi_layak': '🚽 Sanitasi Layak (%)'
-    }
+    # Predictor selection based on research
+    st.sidebar.subheader("Faktor Prediktor")
+    st.sidebar.caption("Pilih variabel berdasarkan kerangka konseptual UNICEF")
     
-    selected_var = st.sidebar.selectbox(
-        "Pilih Variabel:",
-        options=list(var_options.keys()),
-        format_func=lambda x: var_options[x]
-    )
-    
-    # Risk factors selection
-    risk_factors = {
-        'kepadatan_penduduk': 'Kepadatan Penduduk',
-        'persen_air_minum_layak': 'Akses Air Minum',
-        'persen_miskin': 'Kemiskinan',
-        'persen_rumah_layak_huni': 'Rumah Layak Huni',
-        'persen_sanitasi_layak': 'Sanitasi Layak'
-    }
-    
-    selected_factors = st.sidebar.multiselect(
-        "Faktor Risiko:",
-        options=list(risk_factors.keys()),
-        default=['persen_miskin', 'persen_air_minum_layak'],
-        format_func=lambda x: risk_factors[x]
+    selected_predictors = st.sidebar.multiselect(
+        "Pilih Prediktor:",
+        options=list(PREDICTORS.keys()),
+        default=['persen_miskin', 'persen_rumah_layak_huni'],
+        format_func=lambda x: PREDICTORS[x]['label']
     )
     
     st.sidebar.divider()
-    st.sidebar.caption("📅 Data: 2024")
-    st.sidebar.caption("📍 Sumber: BPS & Dinkes Jabar")
+    st.sidebar.caption("Data: BPS & Dinkes Jabar 2024")
+    st.sidebar.caption("Unit: 27 Kabupaten/Kota")
     
     # =========================================================================
-    # LOAD DATA
-    # =========================================================================
-    with st.spinner("Memuat data..."):
-        df = load_csv_data()
-        geojson = load_geojson_data()
-        gdf = load_geodataframe()
-    
-    if df is None:
-        st.error("Gagal memuat data!")
-        return
-    
-    # =========================================================================
-    # TABS - 6 TABS SEPERTI REFERENSI
+    # TABS
     # =========================================================================
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "🗺️ Peta Interaktif",
-        "🔍 Profil Wilayah",
-        "📊 Pola Risiko",
-        "📈 Model Statistik",
-        "📋 Ringkasan Data",
-        "ℹ️ Panduan"
+        "Peta", "Profil Wilayah", "Distribusi Risiko", 
+        "Model Statistik", "Data", "Metodologi"
     ])
     
     # =========================================================================
-    # TAB 1: PETA INTERAKTIF
+    # TAB 1: PETA
     # =========================================================================
     with tab1:
-        # METRICS DINAMIS - berubah sesuai variabel
+        # Metrics
         col1, col2, col3, col4 = st.columns(4)
         
-        # Hitung statistik untuk variabel terpilih
-        total_cases = df['jumlah_stunting'].sum() if 'jumlah_stunting' in df.columns else 0
-        avg_val = df[selected_var].mean()
-        max_val = df[selected_var].max()
-        min_val = df[selected_var].min()
-        max_kab = df.loc[df[selected_var].idxmax(), 'nama_kabkota']
-        min_kab = df.loc[df[selected_var].idxmin(), 'nama_kabkota']
-        
-        # Risk counts
-        high_risk_count = (df['risk_level'].isin(['High Risk', 'Very High Risk'])).sum()
-        medium_risk_count = (df['risk_level'] == 'Medium Risk').sum()
-        low_risk_count = (df['risk_level'] == 'Low Risk').sum()
+        total_stunting = df['jumlah_stunting'].sum()
+        mean_prev = df['persen_stunting'].mean()
+        high_risk = df[df['risk_level'].isin(['Tinggi', 'Sangat Tinggi'])].shape[0]
+        low_risk = df[df['risk_level'] == 'Rendah'].shape[0]
         
         with col1:
-            if selected_var == 'persen_stunting':
-                st.metric(
-                    "Total Kasus Stunting", 
-                    f"{int(total_cases):,}",
-                    delta=f"dari {len(df)} wilayah",
-                    delta_color="off"
-                )
-            else:
-                st.metric(
-                    f"Rata-rata {var_options[selected_var].split(' ')[1]}", 
-                    f"{avg_val:,.1f}",
-                    delta=f"Std: {df[selected_var].std():,.1f}",
-                    delta_color="off"
-                )
-        
+            st.metric("Total Kasus", f"{int(total_stunting):,}", f"n={len(df)} wilayah")
         with col2:
-            st.metric(
-                "Wilayah Risiko Tinggi", 
-                f"{high_risk_count}",
-                delta=f"{high_risk_count/len(df)*100:.0f}% wilayah",
-                delta_color="inverse"
-            )
-        
+            st.metric("Rata-rata Prevalensi", f"{mean_prev:.1f}%", f"SD={df['persen_stunting'].std():.1f}")
         with col3:
-            st.metric(
-                "Wilayah Risiko Sedang", 
-                f"{medium_risk_count}",
-                delta=f"{medium_risk_count/len(df)*100:.0f}% wilayah",
-                delta_color="off"
-            )
-        
+            st.metric("Risiko Tinggi", f"{high_risk} wilayah", f"{high_risk/len(df)*100:.0f}%")
         with col4:
-            st.metric(
-                "Wilayah Risiko Rendah", 
-                f"{low_risk_count}",
-                delta=f"{low_risk_count/len(df)*100:.0f}% wilayah",
-                delta_color="normal"
-            )
+            st.metric("Risiko Rendah", f"{low_risk} wilayah", f"{low_risk/len(df)*100:.0f}%")
         
-        # MAP
-        st.subheader(f"Peta {var_options[selected_var]}")
+        st.subheader("Peta Distribusi Risiko Stunting")
         
-        with st.container(border=True):
-            # Choropleth dengan risk level (seperti referensi)
-            fig = px.choropleth(
-                df,
-                geojson=geojson,
-                locations='kode_kabkota',
-                featureidkey='properties.kode_kabkota',
-                color='risk_level',
-                hover_name='nama_kabkota',
-                hover_data={
-                    'kode_kabkota': False,
-                    'persen_stunting': ':.1f',
-                    'jumlah_stunting': ':,.0f',
-                    'risk_level': True
-                },
-                color_discrete_map=RISK_COLORS,
-                category_orders={'risk_level': ['Low Risk', 'Medium Risk', 'High Risk', 'Very High Risk']}
-            )
-            
-            fig.update_geos(fitbounds="locations", visible=False)
-            fig.update_layout(
-                height=550,
-                margin={"r":0,"t":0,"l":0,"b":0},
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=-0.1,
-                    xanchor="center",
-                    x=0.5
-                )
-            )
-            
-            st.plotly_chart(fig, key="main_map")
-        
-        st.info("💡 **Tips:** Kuning Muda = Risiko Rendah, Kuning-Oranye = Sedang, Oranye = Tinggi, Merah = Sangat Tinggi")
-    
-    # =========================================================================
-    # TAB 2: PROFIL WILAYAH (Province Explorer)
-    # =========================================================================
-    with tab2:
-        selected_kabkota = st.selectbox(
-            "Pilih Kabupaten/Kota:",
-            options=sorted(df['nama_kabkota'].unique())
+        fig = px.choropleth(
+            df,
+            geojson=geojson,
+            locations='kode_kabkota',
+            featureidkey='properties.kode_kabkota',
+            color='risk_level',
+            hover_name='nama_kabkota',
+            hover_data={
+                'kode_kabkota': False,
+                'persen_stunting': ':.1f',
+                'jumlah_stunting': ':,.0f'
+            },
+            color_discrete_map=RISK_COLORS,
+            category_orders={'risk_level': ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi']}
         )
         
-        kab_data = df[df['nama_kabkota'] == selected_kabkota].iloc[0]
+        fig.update_geos(fitbounds="locations", visible=False)
+        fig.update_layout(
+            height=500,
+            margin={"r":0,"t":0,"l":0,"b":0},
+            legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5)
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.caption("Kategori: Rendah (<10%), Sedang (10-20%), Tinggi (20-30%), Sangat Tinggi (>30%)")
+    
+    # =========================================================================
+    # TAB 2: PROFIL WILAYAH
+    # =========================================================================
+    with tab2:
+        selected_kab = st.selectbox("Pilih Kabupaten/Kota:", sorted(df['nama_kabkota'].unique()))
+        kab_data = df[df['nama_kabkota'] == selected_kab].iloc[0]
         
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            st.subheader("📍 Profil Risiko")
+            st.subheader("Profil Risiko")
             
-            risk_level = kab_data['risk_level']
-            risk_color = get_risk_color(risk_level)
-            # Text color: dark for light backgrounds, white for dark backgrounds
-            text_color = "#333333" if risk_level in ["Low Risk", "Medium Risk"] else "#ffffff"
+            risk = kab_data['risk_level']
+            color = RISK_COLORS.get(risk, "#9E9E9E")
+            text_color = get_text_color(risk)
             
             st.markdown(f"""
-            <div style="background-color: {risk_color}; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid rgba(0,0,0,0.1);">
-                <h2 style="margin: 0; color: {text_color};">{selected_kabkota}</h2>
-                <h3 style="margin: 10px 0 0 0; color: {text_color};">{risk_level}</h3>
+            <div style="background-color: {color}; padding: 20px; border-radius: 8px; text-align: center;">
+                <h3 style="margin: 0; color: {text_color};">{selected_kab}</h3>
+                <p style="margin: 5px 0 0 0; color: {text_color}; font-size: 1.2em;">{risk}</p>
             </div>
             """, unsafe_allow_html=True)
             
             st.write("")
-            st.write(f"**Prevalensi Stunting:** {kab_data['persen_stunting']:.1f}%")
-            st.write(f"**Jumlah Balita Stunting:** {int(kab_data['jumlah_stunting']):,}")
-            st.write(f"**Kepadatan Penduduk:** {kab_data['kepadatan_penduduk']:,.0f} jiwa/km²")
-            st.write("")
-            st.write(f"**Akses Air Minum Layak:** {kab_data['persen_air_minum_layak']:.1f}%")
-            st.write(f"**Sanitasi Layak:** {kab_data['persen_sanitasi_layak']:.1f}%")
-            st.write(f"**Rumah Layak Huni:** {kab_data['persen_rumah_layak_huni']:.1f}%")
-            st.write(f"**Penduduk Miskin:** {kab_data['persen_miskin']:.2f}%")
+            
+            # Data table
+            data_rows = [
+                ("Prevalensi Stunting", f"{format_value(kab_data['persen_stunting'])}%"),
+                ("Jumlah Balita Stunting", f"{int(kab_data['jumlah_stunting']):,}"),
+                ("Kepadatan Penduduk", f"{format_value(kab_data['kepadatan_penduduk'], 0)} jiwa/km2"),
+                ("Akses Air Minum Layak", f"{format_value(kab_data['persen_air_minum_layak'])}%"),
+                ("Sanitasi Layak", f"{format_value(kab_data.get('persen_sanitasi_layak', np.nan))}%"),
+                ("Rumah Layak Huni", f"{format_value(kab_data['persen_rumah_layak_huni'])}%"),
+                ("Penduduk Miskin", f"{format_value(kab_data['persen_miskin'])}%"),
+            ]
+            
+            for label, value in data_rows:
+                st.markdown(f"**{label}:** {value}")
         
         with col2:
-            st.subheader("🗺️ Lokasi")
+            st.subheader("Lokasi")
             
-            # Highlight selected kabkota
             df_map = df.copy()
-            df_map['map_category'] = df_map.apply(
-                lambda x: 'Terpilih' if x['nama_kabkota'] == selected_kabkota else x['risk_level'],
-                axis=1
+            df_map['highlight'] = df_map['nama_kabkota'].apply(
+                lambda x: 'Terpilih' if x == selected_kab else 'Lainnya'
             )
-            
-            # Updated color map with professional palette
-            color_map = {
-                'Terpilih': '#3182bd',        # Blue for selected
-                'Low Risk': '#ffffb2',         # Light yellow
-                'Medium Risk': '#fecc5c',      # Yellow-orange
-                'High Risk': '#fd8d3c',        # Orange
-                'Very High Risk': '#e31a1c'    # Red
-            }
             
             fig_loc = px.choropleth(
                 df_map,
                 geojson=geojson,
                 locations='kode_kabkota',
                 featureidkey='properties.kode_kabkota',
-                color='map_category',
+                color='highlight',
                 hover_name='nama_kabkota',
-                hover_data={'kode_kabkota': False, 'persen_stunting': ':.1f'},
-                color_discrete_map=color_map
+                color_discrete_map={'Terpilih': '#2563eb', 'Lainnya': '#e2e8f0'}
             )
             
             fig_loc.update_geos(fitbounds="locations", visible=False)
-            fig_loc.update_layout(
-                height=350,
-                margin={"r":0,"t":0,"l":0,"b":0},
-                showlegend=False
-            )
+            fig_loc.update_layout(height=300, margin={"r":0,"t":0,"l":0,"b":0}, showlegend=False)
             
-            st.plotly_chart(fig_loc, key="loc_map")
+            st.plotly_chart(fig_loc, use_container_width=True)
         
-        # Comparison bar chart
-        st.subheader("📊 Perbandingan dengan Wilayah Lain")
+        # Ranking
+        st.subheader("Perbandingan Ranking")
         
-        df_sorted = df.sort_values('persen_stunting', ascending=True)
+        df_rank = df.sort_values('persen_stunting', ascending=True).reset_index(drop=True)
+        df_rank['rank'] = range(1, len(df_rank) + 1)
         
         fig_bar = px.bar(
-            df_sorted,
+            df_rank,
             x='persen_stunting',
             y='nama_kabkota',
             orientation='h',
             color='risk_level',
             color_discrete_map=RISK_COLORS,
-            category_orders={'risk_level': ['Low Risk', 'Medium Risk', 'High Risk', 'Very High Risk']},
-            hover_data={'persen_stunting': ':.1f', 'risk_level': True}
+            category_orders={'risk_level': ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi']}
         )
         
-        # Highlight selected kabkota with marker
-        selected_idx = df_sorted[df_sorted['nama_kabkota'] == selected_kabkota].index[0]
+        # Highlight selected
+        selected_rank = df_rank[df_rank['nama_kabkota'] == selected_kab]['rank'].values[0]
         fig_bar.add_annotation(
-            x=df_sorted.loc[selected_idx, 'persen_stunting'] + 1,
-            y=selected_kabkota,
-            text="◀ Terpilih",
+            x=kab_data['persen_stunting'] + 1,
+            y=selected_kab,
+            text=f"#{selected_rank}",
             showarrow=False,
-            font=dict(size=12, color="#3182bd")
+            font=dict(size=11, color="#2563eb", weight="bold")
         )
         
         fig_bar.update_layout(
-            height=650,
+            height=600,
             showlegend=True,
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
             xaxis_title="Prevalensi Stunting (%)",
             yaxis_title=""
         )
         
-        st.plotly_chart(fig_bar, key="compare_bar")
+        st.plotly_chart(fig_bar, use_container_width=True)
     
     # =========================================================================
-    # TAB 3: POLA RISIKO
+    # TAB 3: DISTRIBUSI RISIKO
     # =========================================================================
     with tab3:
-        st.subheader("📊 Analisis Distribusi Risiko Stunting")
-        
-        st.write("""
-        Analisis ini menunjukkan distribusi kabupaten/kota berdasarkan tingkat risiko stunting
-        untuk mengidentifikasi wilayah prioritas intervensi.
-        """)
+        st.subheader("Distribusi Kategori Risiko")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Pie chart
             risk_counts = df['risk_level'].value_counts()
             
             fig_pie = px.pie(
@@ -454,324 +384,304 @@ def main():
                 names=risk_counts.index,
                 color=risk_counts.index,
                 color_discrete_map=RISK_COLORS,
-                hole=0.4,
-                title="Distribusi Kategori Risiko"
+                hole=0.4
             )
-            fig_pie.update_layout(height=400)
-            st.plotly_chart(fig_pie, key="risk_pie")
+            fig_pie.update_layout(height=350)
+            st.plotly_chart(fig_pie, use_container_width=True)
         
         with col2:
-            # Bar chart
-            fig_bar_risk = px.bar(
+            fig_bar = px.bar(
                 x=risk_counts.index,
                 y=risk_counts.values,
                 color=risk_counts.index,
                 color_discrete_map=RISK_COLORS,
-                title="Jumlah Wilayah per Kategori",
-                labels={'x': 'Kategori Risiko', 'y': 'Jumlah Wilayah'}
+                labels={'x': 'Kategori', 'y': 'Jumlah'}
             )
-            fig_bar_risk.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig_bar_risk, key="risk_bar")
+            fig_bar.update_layout(height=350, showlegend=False)
+            st.plotly_chart(fig_bar, use_container_width=True)
         
-        # Top/Bottom 5
+        # Top/Bottom
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### 🔴 5 Wilayah Prevalensi Tertinggi")
-            top5 = df.nlargest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'risk_level', 'jumlah_stunting']]
+            st.markdown("**5 Prevalensi Tertinggi**")
+            top5 = df.nlargest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'risk_level']]
             for i, (_, row) in enumerate(top5.iterrows(), 1):
-                color = get_risk_color(row['risk_level'])
-                text_color = "#333333" if row['risk_level'] in ["Low Risk", "Medium Risk"] else "#ffffff"
+                color = RISK_COLORS.get(row['risk_level'], "#9E9E9E")
+                text_col = get_text_color(row['risk_level'])
                 st.markdown(f"""
-                <div style="background-color: {color}; padding: 12px 15px; border-radius: 8px; margin: 5px 0; border: 1px solid rgba(0,0,0,0.1);">
-                    <strong style="color: {text_color};">{i}. {row['nama_kabkota']}</strong><br>
-                    <span style="color: {text_color};">{row['persen_stunting']:.1f}% ({int(row['jumlah_stunting']):,} balita)</span>
+                <div style="background: {color}; padding: 10px; border-radius: 6px; margin: 4px 0;">
+                    <span style="color: {text_col};">{i}. {row['nama_kabkota']} - {row['persen_stunting']:.1f}%</span>
                 </div>
                 """, unsafe_allow_html=True)
         
         with col2:
-            st.markdown("### 🟢 5 Wilayah Prevalensi Terendah")
-            bottom5 = df.nsmallest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'risk_level', 'jumlah_stunting']]
+            st.markdown("**5 Prevalensi Terendah**")
+            bottom5 = df.nsmallest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'risk_level']]
             for i, (_, row) in enumerate(bottom5.iterrows(), 1):
-                color = get_risk_color(row['risk_level'])
-                text_color = "#333333" if row['risk_level'] in ["Low Risk", "Medium Risk"] else "#ffffff"
+                color = RISK_COLORS.get(row['risk_level'], "#9E9E9E")
+                text_col = get_text_color(row['risk_level'])
                 st.markdown(f"""
-                <div style="background-color: {color}; padding: 12px 15px; border-radius: 8px; margin: 5px 0; border: 1px solid rgba(0,0,0,0.1);">
-                    <strong style="color: {text_color};">{i}. {row['nama_kabkota']}</strong><br>
-                    <span style="color: {text_color};">{row['persen_stunting']:.1f}% ({int(row['jumlah_stunting']):,} balita)</span>
+                <div style="background: {color}; padding: 10px; border-radius: 6px; margin: 4px 0;">
+                    <span style="color: {text_col};">{i}. {row['nama_kabkota']} - {row['persen_stunting']:.1f}%</span>
                 </div>
                 """, unsafe_allow_html=True)
-        
-        # Interpretasi
-        if high_risk_count > len(df) * 0.3:
-            st.error(f"""
-            🔥 **Perhatian!** {high_risk_count} dari {len(df)} wilayah ({high_risk_count/len(df)*100:.0f}%) 
-            berada dalam kategori risiko tinggi/sangat tinggi.
-            
-            **Rekomendasi:** Prioritaskan intervensi pada wilayah dengan prevalensi tertinggi.
-            """)
-        else:
-            st.success(f"""
-            ✅ Sebagian besar wilayah ({low_risk_count + medium_risk_count} dari {len(df)}) 
-            berada dalam kategori risiko rendah-sedang.
-            """)
     
     # =========================================================================
     # TAB 4: MODEL STATISTIK
     # =========================================================================
     with tab4:
-        st.subheader("📈 Faktor yang Mempengaruhi Stunting")
+        st.subheader("Analisis Faktor Determinan Stunting")
         
-        st.write("""
-        Analisis ini menggunakan regresi untuk memahami hubungan antara faktor sosial ekonomi
-        dengan prevalensi stunting di Jawa Barat.
+        st.markdown("""
+        Pemilihan variabel prediktor didasarkan pada kerangka konseptual **UNICEF (2013)** 
+        yang mengidentifikasi determinan stunting pada tiga level: penyebab langsung (immediate), 
+        tidak langsung (underlying), dan dasar (basic).
         """)
         
-        if len(selected_factors) > 0:
-            # Show selected factors info
-            st.info(f"📌 **Faktor yang dianalisis:** {', '.join([risk_factors[f] for f in selected_factors])}")
+        # Show predictor references
+        with st.expander("Dasar Pemilihan Variabel Prediktor"):
+            for var, info in PREDICTORS.items():
+                st.markdown(f"""
+                **{info['label']}**
+                - Arah hubungan yang diharapkan: {info['expected_direction']}
+                - Hipotesis: {info['hypothesis']}
+                - Referensi: {info['reference']}
+                """)
+        
+        if len(selected_predictors) == 0:
+            st.warning("Pilih minimal satu prediktor di sidebar.")
+            return
+        
+        # Correlation Analysis
+        st.subheader("Analisis Korelasi Bivariat")
+        
+        corr_results = []
+        for pred in selected_predictors:
+            r, p = calculate_correlation(df, pred)
+            expected = PREDICTORS[pred]['expected_direction']
+            actual = 'positif' if r > 0 else 'negatif' if r < 0 else 'tidak ada'
+            match = 'Sesuai' if (expected == actual or expected == 'tidak pasti') else 'Tidak sesuai'
             
-            # Correlation matrix
-            st.subheader("🔗 Hubungan Antar Variabel")
-            
-            corr_vars = ['persen_stunting'] + selected_factors
-            corr_matrix = df[corr_vars].corr()
-            
-            # Rename for display
-            rename_dict = {'persen_stunting': 'Stunting'}
-            rename_dict.update({k: risk_factors[k] for k in selected_factors})
-            corr_display = corr_matrix.rename(columns=rename_dict, index=rename_dict)
-            
-            with st.container(border=True):
-                fig_corr = px.imshow(
-                    corr_display.values,
-                    x=corr_display.columns,
-                    y=corr_display.index,
-                    color_continuous_scale='RdBu_r',
-                    zmin=-1, zmax=1,
-                    text_auto='.2f',
-                    aspect='auto'
-                )
-                fig_corr.update_layout(height=450, title="Matriks Korelasi")
-                st.plotly_chart(fig_corr, key="corr_matrix")
-            
-            # Dynamic correlation interpretation
-            st.subheader("📊 Interpretasi Korelasi")
-            
-            corr_with_stunting = corr_matrix['persen_stunting'].drop('persen_stunting')
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Korelasi dengan Stunting:**")
-                for factor in selected_factors:
-                    corr_val = corr_with_stunting[factor]
-                    direction = "↑ Positif" if corr_val > 0 else "↓ Negatif"
-                    strength = "Kuat" if abs(corr_val) > 0.5 else "Sedang" if abs(corr_val) > 0.3 else "Lemah"
-                    color = "#e31a1c" if corr_val > 0.3 else "#fd8d3c" if corr_val > 0 else "#3182bd"
-                    st.markdown(f"- **{risk_factors[factor]}**: `{corr_val:.3f}` ({direction}, {strength})")
-            
-            with col2:
-                # Find strongest correlation
-                strongest = corr_with_stunting.abs().idxmax()
-                strongest_val = corr_with_stunting[strongest]
-                st.metric(
-                    "Faktor Paling Berkorelasi",
-                    risk_factors[strongest],
-                    delta=f"r = {strongest_val:.3f}",
-                    delta_color="off"
-                )
-            
-            # Model results - NOW DYNAMIC based on selected factors
-            st.subheader("📊 Hasil Model Regresi OLS")
-            
-            # Calculate OLS dynamically
-            from sklearn.linear_model import LinearRegression
-            from sklearn.metrics import r2_score
-            
-            X = df[selected_factors].values
-            y = df['persen_stunting'].values
-            
-            model = LinearRegression()
-            model.fit(X, y)
-            y_pred = model.predict(X)
-            r2 = r2_score(y, y_pred)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.metric("R-squared", f"{r2:.3f} ({r2*100:.1f}%)")
-                st.metric("Jumlah Faktor", f"{len(selected_factors)}")
-            
-            with col2:
-                st.metric("Observasi", f"{len(df)}")
-                adj_r2 = 1 - (1-r2)*(len(df)-1)/(len(df)-len(selected_factors)-1)
-                st.metric("Adjusted R²", f"{adj_r2:.3f}")
-            
-            # Coefficients table
-            coef_df = pd.DataFrame({
-                'Faktor': [risk_factors[f] for f in selected_factors],
-                'Koefisien': model.coef_,
-                'Arah': ['↑ Meningkatkan' if c > 0 else '↓ Menurunkan' for c in model.coef_]
+            corr_results.append({
+                'Variabel': PREDICTORS[pred]['label'],
+                'r': r,
+                'p-value': p,
+                'Signifikan (a=0.05)': 'Ya' if p < 0.05 else 'Tidak',
+                'Arah Diharapkan': expected,
+                'Arah Aktual': actual,
+                'Kesesuaian': match
             })
-            st.dataframe(coef_df, hide_index=True)
+        
+        corr_df = pd.DataFrame(corr_results)
+        st.dataframe(corr_df.style.format({'r': '{:.3f}', 'p-value': '{:.3f}'}), hide_index=True)
+        
+        # Correlation Matrix
+        st.subheader("Matriks Korelasi")
+        
+        corr_vars = ['persen_stunting'] + selected_predictors
+        corr_matrix = df[corr_vars].corr()
+        
+        labels = ['Stunting'] + [PREDICTORS[p]['label'].split(' (')[0] for p in selected_predictors]
+        
+        fig_corr = px.imshow(
+            corr_matrix.values,
+            x=labels,
+            y=labels,
+            color_continuous_scale='RdBu_r',
+            zmin=-1, zmax=1,
+            text_auto='.2f'
+        )
+        fig_corr.update_layout(height=400)
+        st.plotly_chart(fig_corr, use_container_width=True)
+        
+        # Model Comparison
+        st.subheader("Perbandingan Model Regresi")
+        
+        st.markdown("""
+        Membandingkan beberapa spesifikasi model untuk mengevaluasi kontribusi 
+        masing-masing prediktor terhadap variasi stunting.
+        """)
+        
+        model_results = []
+        
+        # Model 1: Each predictor alone
+        for pred in selected_predictors:
+            result = run_ols_model(df, [pred])
+            if result:
+                model_results.append({
+                    'Model': f"Univariat: {PREDICTORS[pred]['label'].split(' (')[0]}",
+                    'Prediktor': 1,
+                    'R2': result['r2'],
+                    'Adj R2': result['adj_r2'],
+                    'RMSE': result['rmse'],
+                    'n': result['n']
+                })
+        
+        # Model Full: All predictors
+        if len(selected_predictors) > 1:
+            result_full = run_ols_model(df, selected_predictors)
+            if result_full:
+                model_results.append({
+                    'Model': 'Multivariat (semua prediktor)',
+                    'Prediktor': len(selected_predictors),
+                    'R2': result_full['r2'],
+                    'Adj R2': result_full['adj_r2'],
+                    'RMSE': result_full['rmse'],
+                    'n': result_full['n']
+                })
+        
+        if model_results:
+            model_df = pd.DataFrame(model_results)
+            model_df = model_df.sort_values('R2', ascending=False)
             
-            # Interpretation
-            if r2 < 0.1:
-                st.warning(f"""
-                ⚠️ **Model Lemah** (R² = {r2:.1%})
+            st.dataframe(
+                model_df.style.format({'R2': '{:.3f}', 'Adj R2': '{:.3f}', 'RMSE': '{:.2f}'}),
+                hide_index=True
+            )
+            
+            # Best model interpretation
+            best_model = model_df.iloc[0]
+            st.info(f"""
+            **Model Terbaik:** {best_model['Model']}
+            - R2 = {best_model['R2']:.3f} ({best_model['R2']*100:.1f}% variasi stunting dapat dijelaskan)
+            - Adjusted R2 = {best_model['Adj R2']:.3f}
+            - RMSE = {best_model['RMSE']:.2f}
+            """)
+            
+            # Full model coefficients
+            if len(selected_predictors) > 1 and result_full:
+                st.subheader("Koefisien Model Multivariat")
                 
-                Faktor yang dipilih ({', '.join([risk_factors[f] for f in selected_factors])}) 
-                hanya menjelaskan **{r2:.1%}** variasi stunting.
-                """)
-            elif r2 < 0.3:
-                st.info(f"""
-                📊 **Model Moderat** (R² = {r2:.1%})
+                coef_data = []
+                for pred in selected_predictors:
+                    coef = result_full['coef'][pred]
+                    direction = 'Meningkatkan' if coef > 0 else 'Menurunkan'
+                    coef_data.append({
+                        'Variabel': PREDICTORS[pred]['label'],
+                        'Koefisien (B)': coef,
+                        'Interpretasi': f"{direction} stunting sebesar {abs(coef):.3f}% per unit"
+                    })
                 
-                Faktor yang dipilih menjelaskan **{r2:.1%}** variasi stunting.
-                """)
-            else:
-                st.success(f"""
-                ✅ **Model Cukup Baik** (R² = {r2:.1%})
+                coef_df = pd.DataFrame(coef_data)
+                st.dataframe(coef_df.style.format({'Koefisien (B)': '{:.4f}'}), hide_index=True)
+        
+        # Scatter plots
+        st.subheader("Scatter Plot dengan Garis Regresi")
+        
+        cols = st.columns(2)
+        for i, pred in enumerate(selected_predictors[:4]):
+            with cols[i % 2]:
+                # Filter valid data
+                plot_df = df[[pred, 'persen_stunting', 'nama_kabkota', 'risk_level']].dropna()
                 
-                Faktor yang dipilih menjelaskan **{r2:.1%}** variasi stunting.
-                """)
-            
-            # Scatter plots
-            st.subheader("📈 Scatter Plot")
-            
-            scatter_cols = st.columns(2)
-            
-            for i, factor in enumerate(selected_factors[:4]):
-                with scatter_cols[i % 2]:
-                    fig_scatter = px.scatter(
-                        df,
-                        x=factor,
+                if len(plot_df) > 2:
+                    fig = px.scatter(
+                        plot_df,
+                        x=pred,
                         y='persen_stunting',
                         hover_name='nama_kabkota',
                         trendline='ols',
                         color='risk_level',
                         color_discrete_map=RISK_COLORS,
-                        labels={
-                            factor: risk_factors[factor],
-                            'persen_stunting': 'Prevalensi Stunting (%)'
-                        },
-                        title=f"Stunting vs {risk_factors[factor]}"
+                        labels={pred: PREDICTORS[pred]['label'], 'persen_stunting': 'Stunting (%)'}
                     )
-                    fig_scatter.update_layout(height=350, showlegend=False)
-                    st.plotly_chart(fig_scatter, key=f"scatter_{factor}")
-        else:
-            st.warning("Pilih minimal satu faktor risiko di sidebar untuk melihat analisis.")
+                    fig.update_layout(height=300, showlegend=False)
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Show correlation
+                    r, p = calculate_correlation(df, pred)
+                    st.caption(f"r = {r:.3f}, p = {p:.3f}")
     
     # =========================================================================
-    # TAB 5: RINGKASAN DATA
+    # TAB 5: DATA
     # =========================================================================
     with tab5:
-        st.subheader("📋 Statistik Deskriptif")
+        st.subheader("Statistik Deskriptif")
         
-        # Summary stats
-        summary_vars = ['persen_stunting', 'jumlah_stunting', 'kepadatan_penduduk', 
-                        'persen_air_minum_layak', 'persen_miskin', 'persen_rumah_layak_huni']
-        summary_stats = df[summary_vars].describe().T
-        summary_stats.index = ['Stunting (%)', 'Jumlah Stunting', 'Kepadatan', 
-                               'Air Minum (%)', 'Miskin (%)', 'Rumah Layak (%)']
+        desc_vars = ['persen_stunting', 'jumlah_stunting', 'kepadatan_penduduk', 
+                     'persen_air_minum_layak', 'persen_miskin', 'persen_rumah_layak_huni']
         
-        st.dataframe(summary_stats.round(2))
+        desc_stats = df[desc_vars].describe().T
+        desc_stats.index = ['Stunting (%)', 'Jml Stunting', 'Kepadatan', 
+                            'Air Minum (%)', 'Miskin (%)', 'Rumah Layak (%)']
         
-        # Full dataset
-        st.subheader("📋 Data Lengkap")
+        st.dataframe(desc_stats.round(2))
         
-        # Search
-        search = st.text_input("🔍 Cari kabupaten/kota:", placeholder="Ketik nama...")
+        st.subheader("Data Lengkap")
+        
+        search = st.text_input("Cari kabupaten/kota:", placeholder="Ketik nama...")
         
         df_display = df.copy()
         if search:
             df_display = df_display[df_display['nama_kabkota'].str.contains(search, case=False)]
         
-        # Display
-        display_cols = ['nama_kabkota', 'persen_stunting', 'jumlah_stunting', 'risk_level',
-                        'kepadatan_penduduk', 'persen_air_minum_layak', 'persen_miskin', 
-                        'persen_rumah_layak_huni']
+        cols_show = ['nama_kabkota', 'persen_stunting', 'jumlah_stunting', 'risk_level',
+                     'kepadatan_penduduk', 'persen_air_minum_layak', 'persen_miskin', 
+                     'persen_rumah_layak_huni']
         
-        df_show = df_display[display_cols].sort_values('persen_stunting', ascending=False)
+        df_show = df_display[cols_show].sort_values('persen_stunting', ascending=False)
         df_show.columns = ['Kab/Kota', 'Stunting (%)', 'Jml Stunting', 'Risiko',
                            'Kepadatan', 'Air Minum (%)', 'Miskin (%)', 'Rumah Layak (%)']
         
-        st.dataframe(df_show, hide_index=True, height=450)
+        st.dataframe(df_show, hide_index=True, height=400)
         
-        # Download
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Download Data (CSV)",
-            data=csv,
-            file_name="data_stunting_jabar_2024.csv",
-            mime="text/csv"
-        )
+        st.download_button("Download CSV", csv, "data_stunting_jabar_2024.csv", "text/csv")
     
     # =========================================================================
-    # TAB 6: PANDUAN
+    # TAB 6: METODOLOGI
     # =========================================================================
     with tab6:
-        st.subheader("📖 Panduan Penggunaan Dashboard")
+        st.subheader("Metodologi Analisis")
         
-        st.write("""
-        ### 1. 🗺️ Tab Peta Interaktif
-        - Lihat distribusi risiko stunting di seluruh kabupaten/kota Jawa Barat
-        - **Kuning** = Risiko Rendah, **Oranye** = Sedang, **Merah** = Tinggi, **Ungu Gelap** = Sangat Tinggi
-        - Arahkan kursor ke wilayah untuk melihat detail
+        st.markdown("""
+        ### Kerangka Konseptual
         
-        ### 2. 🔍 Tab Profil Wilayah
-        - Pilih kabupaten/kota untuk melihat profil lengkap
-        - Lihat perbandingan dengan wilayah lain
-        - Warna biru menandakan wilayah yang sedang dipilih
+        Analisis ini menggunakan kerangka konseptual **UNICEF (2013)** yang mengidentifikasi 
+        determinan stunting pada tiga level:
         
-        ### 3. 📊 Tab Pola Risiko
-        - Lihat distribusi kategori risiko
-        - Identifikasi 5 wilayah tertinggi dan terendah
-        - Dapatkan rekomendasi intervensi
+        1. **Penyebab Langsung (Immediate):** Asupan gizi tidak adekuat, penyakit infeksi
+        2. **Penyebab Tidak Langsung (Underlying):** Ketersediaan pangan, pola asuh, akses air bersih dan sanitasi
+        3. **Penyebab Dasar (Basic):** Kemiskinan, ketimpangan, pendidikan
         
-        ### 4. 📈 Tab Model Statistik
-        - Analisis korelasi antar variabel
-        - Hasil model regresi OLS
-        - Scatter plot dengan trendline
+        ### Variabel dalam Analisis
         
-        ### 5. 📋 Tab Ringkasan Data
-        - Statistik deskriptif semua variabel
-        - Pencarian dan filter data
-        - Download data dalam format CSV
+        | Variabel | Level UNICEF | Referensi |
+        |----------|--------------|-----------|
+        | Kemiskinan | Basic cause | UNICEF Framework |
+        | Akses air minum | Underlying cause | WHO (2014) |
+        | Rumah layak huni | Underlying cause | Victora et al. (2008) |
+        | Kepadatan penduduk | Kontekstual | - |
         
-        ---
+        ### Kategori Risiko
         
-        ### 🎨 Keterangan Warna Risiko (ColorBrewer YlOrRd)
+        Kategorisasi risiko mengacu pada target nasional dan WHO:
         
-        Palette warna menggunakan **ColorBrewer YlOrRd** yang merupakan standar 
-        visualisasi data kesehatan dan epidemiologi.
+        | Kategori | Prevalensi | Keterangan |
+        |----------|------------|------------|
+        | Rendah | <10% | Di bawah target WHO |
+        | Sedang | 10-20% | Target nasional 2024 |
+        | Tinggi | 20-30% | Di atas target |
+        | Sangat Tinggi | >30% | Prioritas intervensi |
         
-        | Kategori | Kriteria | Warna | Hex Code |
-        |----------|----------|-------|----------|
-        | Low Risk | < Kuartil 1 | 🟨 Kuning Muda | `#ffffb2` |
-        | Medium Risk | Q1 - Median | 🟡 Kuning-Oranye | `#fecc5c` |
-        | High Risk | Median - Q3 | 🟠 Oranye | `#fd8d3c` |
-        | Very High Risk | > Kuartil 3 | 🔴 Merah | `#e31a1c` |
+        ### Keterbatasan
         
-        ---
+        1. **Ecological fallacy:** Hubungan pada level agregat tidak dapat diinterpretasikan pada level individu
+        2. **Cross-sectional:** Tidak dapat menetapkan hubungan kausal
+        3. **Ukuran sampel kecil:** n=27 membatasi power statistik
+        4. **Missing data:** Beberapa variabel tidak tersedia lengkap
         
-        ### 📊 Tentang Data
+        ### Referensi
         
-        - **Sumber:** BPS & Dinas Kesehatan Provinsi Jawa Barat
-        - **Tahun:** 2024
-        - **Unit Analisis:** 27 Kabupaten/Kota
-        - **Variabel:**
-          - Prevalensi Stunting (%)
-          - Jumlah Balita Stunting
-          - Kepadatan Penduduk (jiwa/km²)
-          - Akses Air Minum Layak (%)
-          - Sanitasi Layak (%)
-          - Penduduk Miskin (%)
-          - Rumah Layak Huni (%)
+        - UNICEF. (2013). *Improving Child Nutrition: The achievable imperative for global progress*
+        - de Onis, M., & Branca, F. (2016). Childhood stunting: a global perspective. *Maternal & Child Nutrition*, 12(S1), 12-26
+        - WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*
+        - Victora, C. G., et al. (2008). Maternal and child undernutrition. *The Lancet*, 371(9609), 340-357
         """)
 
 # ============================================================================
-# RUN APPLICATION
+# RUN
 # ============================================================================
 if __name__ == "__main__":
     main()
