@@ -18,9 +18,6 @@ output:
     code_folding: hide
     df_print: paged
     fig_caption: true
-    css: !expr NULL
-bibliography: references.bib
-csl: apa.csl
 ---
 
 ```{r setup, include=FALSE}
@@ -312,16 +309,18 @@ var_df <- data.frame(
   ),
   Satuan = c("%", "%", "%", "jiwa/km²"),
   `Level UNICEF` = c("Basic cause", "Underlying cause", "Underlying cause", "Kontekstual"),
-  `Hipotesis Arah` = c("Positif (+)", "Negatif (-)", "Negatif (-)", "Tidak pasti (±)")
+  `Hipotesis Arah` = c("Positif (+)", "Negatif (-)", "Negatif (-)", "Tidak pasti (±)"),
+  Referensi = c("UNICEF (2013)", "WHO (2014)", "Victora et al. (2008)", "Smith & Ruel (2005)")
 )
 
 kable(var_df, 
-      col.names = c("No", "Variabel", "Definisi Operasional", "Satuan", "Level UNICEF", "Hipotesis"),
+      col.names = c("No", "Variabel", "Definisi Operasional", "Satuan", "Level UNICEF", "Hipotesis", "Referensi"),
       caption = "Operasionalisasi Variabel Independen") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
                 full_width = TRUE,
-                font_size = 12) %>%
-  column_spec(3, width = "30%")
+                font_size = 11) %>%
+  column_spec(3, width = "25%") %>%
+  column_spec(7, width = "12%")
 ```
 
 ## 3.5 Analisis Data
@@ -650,31 +649,33 @@ Berdasarkan hasil penelitian dan pembahasan, dapat disimpulkan:
 
 # DAFTAR PUSTAKA {-}
 
-Black, R. E., Victora, C. G., Walker, S. P., Bhutta, Z. A., Christian, P., de Onis, M., ... & Uauy, R. (2013). Maternal and child undernutrition and overweight in low-income and middle-income countries. *The Lancet*, 382(9890), 427-451.
+Badan Pusat Statistik Provinsi Jawa Barat. (2024). *Jawa Barat Dalam Angka 2024*. Bandung: BPS Provinsi Jawa Barat. https://jabar.bps.go.id
 
-de Onis, M., & Branca, F. (2016). Childhood stunting: a global perspective. *Maternal & Child Nutrition*, 12(S1), 12-26.
+Black, R. E., Victora, C. G., Walker, S. P., Bhutta, Z. A., Christian, P., de Onis, M., Ezzati, M., Grantham-McGregor, S., Katz, J., Martorell, R., & Uauy, R. (2013). Maternal and child undernutrition and overweight in low-income and middle-income countries. *The Lancet*, 382(9890), 427-451. https://doi.org/10.1016/S0140-6736(13)60937-X
 
-Green, S. B. (1991). How many subjects does it take to do a regression analysis? *Multivariate Behavioral Research*, 26(3), 499-510.
+de Onis, M., & Branca, F. (2016). Childhood stunting: A global perspective. *Maternal & Child Nutrition*, 12(S1), 12-26. https://doi.org/10.1111/mcn.12231
+
+Green, S. B. (1991). How many subjects does it take to do a regression analysis? *Multivariate Behavioral Research*, 26(3), 499-510. https://doi.org/10.1207/s15327906mbr2603_7
 
 Hair, J. F., Black, W. C., Babin, B. J., & Anderson, R. E. (2019). *Multivariate Data Analysis* (8th ed.). Cengage Learning.
 
-Kementerian Kesehatan RI. (2023). *Buku Saku Hasil Survei Status Gizi Indonesia (SSGI) 2022*. Jakarta: Kemenkes RI.
+Kementerian Kesehatan RI. (2023). *Buku Saku Hasil Survei Status Gizi Indonesia (SSGI) 2022*. Jakarta: Kementerian Kesehatan Republik Indonesia. https://kesmas.kemkes.go.id
 
-Morgenstern, H. (1995). Ecologic studies in epidemiology: concepts, principles, and methods. *Annual Review of Public Health*, 16(1), 61-81.
+Morgenstern, H. (1995). Ecologic studies in epidemiology: Concepts, principles, and methods. *Annual Review of Public Health*, 16(1), 61-81. https://doi.org/10.1146/annurev.pu.16.050195.000425
 
-Robinson, W. S. (1950). Ecological correlations and the behavior of individuals. *American Sociological Review*, 15(3), 351-357.
+Robinson, W. S. (1950). Ecological correlations and the behavior of individuals. *American Sociological Review*, 15(3), 351-357. https://doi.org/10.2307/2087176
 
-UNICEF. (2013). *Improving Child Nutrition: The achievable imperative for global progress*. New York: UNICEF.
+Smith, L. C., & Ruel, M. T. (2005). Why is child malnutrition lower in urban than in rural areas? Evidence from 36 developing countries. *World Development*, 33(8), 1285-1305. https://doi.org/10.1016/j.worlddev.2005.03.002
 
-Victora, C. G., Adair, L., Fall, C., Hallal, P. C., Martorell, R., Richter, L., & Sachdev, H. S. (2008). Maternal and child undernutrition: consequences for adult health and human capital. *The Lancet*, 371(9609), 340-357.
+UNICEF. (2013). *Improving Child Nutrition: The achievable imperative for global progress*. New York: United Nations Children's Fund. https://data.unicef.org/resources/improving-child-nutrition-the-achievable-imperative-for-global-progress/
 
-WHO. (1995). *Physical Status: The Use and Interpretation of Anthropometry*. Technical Report Series No. 854. Geneva: World Health Organization.
+Victora, C. G., Adair, L., Fall, C., Hallal, P. C., Martorell, R., Richter, L., & Sachdev, H. S. (2008). Maternal and child undernutrition: Consequences for adult health and human capital. *The Lancet*, 371(9609), 340-357. https://doi.org/10.1016/S0140-6736(07)61692-4
 
-WHO. (2006). *WHO Child Growth Standards: Length/height-for-age, weight-for-age, weight-for-length, weight-for-height and body mass index-for-age*. Geneva: World Health Organization.
+WHO. (1995). *Physical Status: The Use and Interpretation of Anthropometry*. Technical Report Series No. 854. Geneva: World Health Organization. https://www.who.int/publications/i/item/924120854X
 
-WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*. Geneva: World Health Organization.
+WHO. (2006). *WHO Child Growth Standards: Length/height-for-age, weight-for-age, weight-for-length, weight-for-height and body mass index-for-age*. Geneva: World Health Organization. https://www.who.int/tools/child-growth-standards
 
-Badan Pusat Statistik Provinsi Jawa Barat. (2024). *Jawa Barat Dalam Angka 2024*. Bandung: BPS Jabar.
+WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*. Geneva: World Health Organization. https://www.who.int/publications/i/item/WHO-NMH-NHD-14.3
 
 ---
 
