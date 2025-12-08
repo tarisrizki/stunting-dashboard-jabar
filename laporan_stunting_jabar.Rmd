@@ -32,23 +32,17 @@ library(knitr)
 library(kableExtra)
 ```
 
-# ABSTRAK {-}
+<center>
+## **Abstract** {-}
+</center>
 
-<div class="abstract-box">
+<div class="abstract-text">
 
-**Latar Belakang:** Stunting merupakan masalah gizi kronis yang menjadi prioritas kesehatan masyarakat di Indonesia. Provinsi Jawa Barat sebagai provinsi dengan populasi terbesar memiliki kontribusi signifikan terhadap beban stunting nasional.
-
-**Tujuan:** Menganalisis distribusi spasial prevalensi stunting balita dan hubungannya dengan determinan sosial ekonomi pada tingkat kabupaten/kota di Provinsi Jawa Barat tahun 2024.
-
-**Metode:** Penelitian ini menggunakan desain studi ekologis *cross-sectional* dengan unit analisis 27 kabupaten/kota. Data bersumber dari Badan Pusat Statistik (BPS) dan Dinas Kesehatan Provinsi Jawa Barat tahun 2024. Variabel independen meliputi persentase penduduk miskin, akses air minum layak, rumah layak huni, dan kepadatan penduduk. Analisis data menggunakan korelasi Pearson dan regresi linear berganda dengan tingkat signifikansi α = 0,05.
-
-**Hasil:** Prevalensi stunting bervariasi antara 7,2% hingga 30,8% dengan rata-rata 17,84%. Sebanyak 70,4% kabupaten/kota berada pada kategori prevalensi rendah menurut klasifikasi WHO (1995). Model regresi menunjukkan hasil tidak signifikan (R² = 0,074; p = 0,780). Tidak ditemukan korelasi signifikan antara variabel independen dengan prevalensi stunting (p > 0,05).
-
-**Kesimpulan:** Model tidak signifikan disebabkan oleh keterbatasan ukuran sampel (n = 27) dan karakteristik variabel determinan distal yang hubungannya dengan stunting dimediasi oleh banyak faktor. Penelitian selanjutnya disarankan menggunakan unit analisis yang lebih granular atau data level individu.
-
-**Kata Kunci:** stunting, analisis spasial, studi ekologis, determinan sosial, Jawa Barat
+Stunting is a chronic nutritional problem that is a public health priority in Indonesia. This study aimed to analyze the spatial distribution of stunting prevalence and its relationship with socioeconomic determinants at the district/city level in West Java Province in 2024. The research used an ecological cross-sectional study design with 27 districts/cities as the unit of analysis. Data were sourced from the Central Bureau of Statistics (BPS) and the West Java Provincial Health Office in 2024. Independent variables included poverty rate, access to safe drinking water, adequate housing, and population density. Data analysis used Pearson correlation and multiple linear regression with a significance level of α = 0.05. The results showed that stunting prevalence varied between 7.2% and 30.8% with an average of 17.84%. A total of 70.4% of districts/cities were in the low prevalence category according to WHO (1995) classification. The regression model showed non-significant results (R² = 0.074; p = 0.780). No significant correlation was found between independent variables and stunting prevalence (p > 0.05). The non-significance of the model was due to sample size limitations (n = 27) and the characteristics of distal determinant variables whose relationship with stunting is mediated by many factors. Further research is recommended to use more granular units of analysis or individual-level data.
 
 </div>
+
+**Keywords:** *stunting, spatial analysis, ecological study, social determinants, West Java*
 
 ---
 
@@ -438,6 +432,8 @@ Variabel yang tersedia (kemiskinan, akses air minum, rumah layak huni, kepadatan
 
 # DAFTAR PUSTAKA {-}
 
+<div class="references">
+
 Badan Pusat Statistik Provinsi Jawa Barat. (2024). *Jawa Barat Dalam Angka 2024*. Bandung: BPS Provinsi Jawa Barat. https://jabar.bps.go.id
 
 Black, R. E., Victora, C. G., Walker, S. P., Bhutta, Z. A., Christian, P., de Onis, M., Ezzati, M., Grantham-McGregor, S., Katz, J., Martorell, R., & Uauy, R. (2013). Maternal and child undernutrition and overweight in low-income and middle-income countries. *The Lancet*, 382(9890), 427-451. https://doi.org/10.1016/S0140-6736(13)60937-X
@@ -466,42 +462,65 @@ WHO. (2006). *WHO Child Growth Standards: Length/height-for-age, weight-for-age,
 
 WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*. Geneva: World Health Organization. https://www.who.int/publications/i/item/WHO-NMH-NHD-14.3
 
+</div>
+
 ---
 
 <style>
-.abstract-box {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-left: 5px solid #0d6efd;
-  border-radius: 0 8px 8px 0;
-  padding: 20px 25px;
-  margin: 25px 0;
-  font-size: 0.95em;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* Text justify untuk seluruh dokumen */
+body {
+  text-align: justify;
 }
 
+/* Abstract styling */
+.abstract-text {
+  text-align: justify;
+  margin: 15px 0;
+  line-height: 1.6;
+}
+
+/* Daftar Pustaka dengan hanging indent */
+#daftar-pustaka p, 
+#daftar-pustaka- p,
+.references p {
+  padding-left: 2em;
+  text-indent: -2em;
+  text-align: justify;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* Heading styles */
 h1 { 
   color: #1a365d; 
-  border-bottom: 2px solid #0d6efd;
-  padding-bottom: 10px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 8px;
+  text-align: left;
 }
 
 h2 { 
   color: #2c5282; 
+  text-align: left;
 }
 
 h3 {
   color: #3182ce;
+  text-align: left;
 }
 
-blockquote {
-  background-color: #fff3cd;
-  border-left: 4px solid #ffc107;
-  padding: 15px;
-  margin: 15px 0;
-  font-style: italic;
-}
-
+/* Table styling */
 table {
   margin: 20px auto;
+}
+
+/* Paragraph justify */
+p {
+  text-align: justify;
+  line-height: 1.6;
+}
+
+/* List items */
+li {
+  text-align: justify;
 }
 </style>
