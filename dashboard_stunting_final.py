@@ -150,8 +150,8 @@ PREDICTORS = {
     'kepadatan_penduduk': {
         'label': 'Kepadatan Penduduk (jiwa/km2)',
         'expected_direction': 'tidak pasti',
-        'reference': 'Efek ambigu: urbanisasi dapat positif (akses layanan) atau negatif (kemiskinan urban)',
-        'hypothesis': 'Hubungan non-linear dengan stunting'
+        'reference': 'Ruel et al. (2017): Urbanisasi memiliki efek ambigu terhadap gizi anak',
+        'hypothesis': 'Hubungan tidak pasti: dapat positif (akses layanan lebih baik) atau negatif (kemiskinan urban)'
     }
 }
 
