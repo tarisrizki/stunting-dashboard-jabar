@@ -739,10 +739,10 @@ def main():
         
         | Variabel | Level UNICEF | Referensi |
         |----------|--------------|-----------|
-        | Kemiskinan | Basic cause | UNICEF Framework |
-        | Akses air minum | Underlying cause | WHO (2014) |
+        | Kemiskinan | Basic cause | UNICEF (2013) |
+        | Akses air minum layak | Underlying cause | WHO (2014) |
         | Rumah layak huni | Underlying cause | Victora et al. (2008) |
-        | Kepadatan penduduk | Kontekstual | - |
+        | Kepadatan penduduk | Kontekstual | Smith & Ruel (2005) |
         
         ### Kategori Risiko
         
