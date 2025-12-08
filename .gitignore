@@ -50,4 +50,5 @@ simplify_geojson.py
 *.md
 !README.md
 *.Rmd
+!laporan_stunting_jabar.Rmd
 *.html
