@@ -132,26 +132,26 @@ PREDICTORS = {
     'persen_miskin': {
         'label': 'Kemiskinan (%)',
         'expected_direction': 'positif',
-        'reference': 'UNICEF (2013): Kemiskinan sebagai penyebab dasar (basic cause) stunting',
-        'hypothesis': 'Semakin tinggi kemiskinan, semakin tinggi stunting'
+        'reference': 'UNICEF (2013). Improving Child Nutrition: The achievable imperative for global progress. New York: UNICEF.',
+        'hypothesis': 'Semakin tinggi kemiskinan, semakin tinggi prevalensi stunting'
     },
     'persen_air_minum_layak': {
         'label': 'Akses Air Minum Layak (%)',
         'expected_direction': 'negatif',
-        'reference': 'WHO (2014): Air bersih sebagai faktor underlying cause',
-        'hypothesis': 'Semakin tinggi akses air bersih, semakin rendah stunting'
+        'reference': 'WHO (2014). Global Nutrition Targets 2025: Stunting Policy Brief. Geneva: WHO.',
+        'hypothesis': 'Semakin tinggi akses air minum layak, semakin rendah prevalensi stunting'
     },
     'persen_rumah_layak_huni': {
         'label': 'Rumah Layak Huni (%)',
         'expected_direction': 'negatif',
-        'reference': 'Victora et al. (2008): Kualitas hunian mempengaruhi kesehatan anak',
-        'hypothesis': 'Semakin baik kualitas hunian, semakin rendah stunting'
+        'reference': 'Victora, C.G. et al. (2008). Maternal and child undernutrition. The Lancet, 371(9609), 340-357.',
+        'hypothesis': 'Semakin tinggi persentase rumah layak huni, semakin rendah prevalensi stunting'
     },
     'kepadatan_penduduk': {
         'label': 'Kepadatan Penduduk (jiwa/km2)',
         'expected_direction': 'tidak pasti',
-        'reference': 'Ruel et al. (2017): Urbanisasi memiliki efek ambigu terhadap gizi anak',
-        'hypothesis': 'Hubungan tidak pasti: dapat positif (akses layanan lebih baik) atau negatif (kemiskinan urban)'
+        'reference': 'Smith, L.C. & Ruel, M.T. (2005). Why Is Child Malnutrition Lower in Urban Than in Rural Areas? World Development, 33(8), 1285-1305.',
+        'hypothesis': 'Hubungan tidak pasti: dapat negatif (akses layanan lebih baik) atau positif (kemiskinan urban)'
     }
 }
 
@@ -766,11 +766,12 @@ def main():
         
         ### Referensi
         
-        - WHO. (1995). *Physical Status: The Use and Interpretation of Anthropometry*. Technical Report Series No. 854
-        - UNICEF. (2013). *Improving Child Nutrition: The achievable imperative for global progress*
-        - de Onis, M., & Branca, F. (2016). Childhood stunting: a global perspective. *Maternal & Child Nutrition*, 12(S1), 12-26
-        - WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*
-        - Victora, C. G., et al. (2008). Maternal and child undernutrition. *The Lancet*, 371(9609), 340-357
+        - WHO. (1995). *Physical Status: The Use and Interpretation of Anthropometry*. Technical Report Series No. 854. Geneva: WHO.
+        - UNICEF. (2013). *Improving Child Nutrition: The achievable imperative for global progress*. New York: UNICEF.
+        - de Onis, M., & Branca, F. (2016). Childhood stunting: a global perspective. *Maternal & Child Nutrition*, 12(S1), 12-26.
+        - WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*. Geneva: WHO.
+        - Victora, C.G., et al. (2008). Maternal and child undernutrition. *The Lancet*, 371(9609), 340-357.
+        - Smith, L.C. & Ruel, M.T. (2005). Why Is Child Malnutrition Lower in Urban Than in Rural Areas? *World Development*, 33(8), 1285-1305.
         """)
 
 # ============================================================================
