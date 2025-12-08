@@ -46,7 +46,7 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] { padding: 10px 20px; }
     
-    #MainMenu, footer, header { visibility: hidden; }
+    #MainMenu, footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -256,7 +256,7 @@ def main():
         df = load_data()
         geojson = load_geojson()
     except Exception as e:
-        st.error(f"❌ Error memuat data: {str(e)}")
+        st.error(f"Error memuat data: {str(e)}")
         st.stop()
     
     # =========================================================================
@@ -276,7 +276,7 @@ def main():
     
     st.sidebar.divider()
     st.sidebar.caption("Data: BPS & Dinkes Jabar 2024")
-    st.sidebar.caption("Unit: 27 Kabupaten/Kota")
+    st.sidebar.caption(f"Unit: {len(df)} Kabupaten/Kota")
     
     # =========================================================================
     # TABS
@@ -746,24 +746,27 @@ def main():
         
         ### Kategori Risiko
         
-        Kategorisasi risiko mengacu pada target nasional dan WHO:
+        Kategorisasi risiko mengacu pada **WHO (1995) Technical Report Series No. 854**:
         
         | Kategori | Prevalensi | Keterangan |
         |----------|------------|------------|
-        | Rendah | <20% | Rendah menurut WHO (1995) |
-        | Sedang | 20-29% | Sedang menurut WHO (1995) |
-        | Tinggi | 30-39% | Tinggi menurut WHO (1995) |
-        | Sangat Tinggi | ≥40% | Sangat tinggi menurut WHO (1995) |
+        | Rendah | <20% | Low prevalence |
+        | Sedang | 20-29% | Medium prevalence |
+        | Tinggi | 30-39% | High prevalence |
+        | Sangat Tinggi | >=40% | Very high prevalence |
+        """)
         
+        st.markdown(f"""
         ### Keterbatasan
         
         1. **Ecological fallacy:** Hubungan pada level agregat tidak dapat diinterpretasikan pada level individu
         2. **Cross-sectional:** Tidak dapat menetapkan hubungan kausal
-        3. **Ukuran sampel kecil:** n=27 membatasi power statistik
+        3. **Ukuran sampel:** n={len(df)} membatasi power statistik
         4. **Missing data:** Beberapa variabel tidak tersedia lengkap
         
         ### Referensi
         
+        - WHO. (1995). *Physical Status: The Use and Interpretation of Anthropometry*. Technical Report Series No. 854
         - UNICEF. (2013). *Improving Child Nutrition: The achievable imperative for global progress*
         - de Onis, M., & Branca, F. (2016). Childhood stunting: a global perspective. *Maternal & Child Nutrition*, 12(S1), 12-26
         - WHO. (2014). *Global Nutrition Targets 2025: Stunting Policy Brief*
