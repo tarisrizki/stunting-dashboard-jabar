@@ -1,9 +1,7 @@
 ---
 title: "Analisis Spasial Prevalensi Stunting Balita di Provinsi Jawa Barat Tahun 2024"
-subtitle: "Studi Ekologis pada Level Kabupaten/Kota dengan Pendekatan Regresi Linear Berganda"
-author: |
-  | **Program Studi Epidemiologi**
-  | Fakultas Kesehatan Masyarakat
+subtitle: "Studi Ekologis pada Tingkat Kabupaten/Kota"
+author: "Program Studi Epidemiologi, Fakultas Kesehatan Masyarakat"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 output:
   html_document:
@@ -11,13 +9,11 @@ output:
     toc_float:
       collapsed: false
       smooth_scroll: true
-    toc_depth: 4
+    toc_depth: 3
     number_sections: true
-    theme: cosmo
+    theme: flatly
     highlight: tango
-    code_folding: hide
     df_print: paged
-    fig_caption: true
 ---
 
 ```{r setup, include=FALSE}
@@ -26,207 +22,121 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   fig.align = "center",
-  fig.width = 8,
-  fig.height = 5,
-  dpi = 150
+  fig.width = 7,
+  fig.height = 4,
+  dpi = 120
 )
 
-# Load required packages
 library(tidyverse)
 library(knitr)
 library(kableExtra)
-library(scales)
-
-# Custom theme for tables
-options(knitr.kable.NA = '-')
 ```
-
----
 
 # ABSTRAK {-}
 
 <div class="abstract-box">
 
-**Latar Belakang:** Stunting merupakan indikator kegagalan pertumbuhan kronis pada anak balita yang menjadi prioritas pembangunan kesehatan di Indonesia. Provinsi Jawa Barat, sebagai provinsi dengan populasi terbesar, memiliki kontribusi signifikan terhadap beban stunting nasional.
+**Latar Belakang:** Stunting merupakan masalah gizi kronis yang menjadi prioritas kesehatan masyarakat di Indonesia. Provinsi Jawa Barat sebagai provinsi dengan populasi terbesar memiliki kontribusi signifikan terhadap beban stunting nasional.
 
-**Tujuan:** Penelitian ini bertujuan untuk menganalisis distribusi spasial prevalensi stunting balita serta mengidentifikasi hubungannya dengan determinan sosial ekonomi pada tingkat kabupaten/kota di Provinsi Jawa Barat tahun 2024.
+**Tujuan:** Menganalisis distribusi spasial prevalensi stunting balita dan hubungannya dengan determinan sosial ekonomi pada tingkat kabupaten/kota di Provinsi Jawa Barat tahun 2024.
 
-**Metode:** Desain penelitian menggunakan studi ekologis *cross-sectional* dengan unit analisis 27 kabupaten/kota. Data bersumber dari Badan Pusat Statistik dan Dinas Kesehatan Provinsi Jawa Barat. Variabel independen meliputi persentase kemiskinan, akses air minum layak, rumah layak huni, dan kepadatan penduduk. Analisis statistik menggunakan korelasi Pearson dan regresi linear berganda (*Ordinary Least Squares*/OLS) dengan tingkat signifikansi α = 0,05.
+**Metode:** Penelitian ini menggunakan desain studi ekologis *cross-sectional* dengan unit analisis 27 kabupaten/kota. Data bersumber dari Badan Pusat Statistik (BPS) dan Dinas Kesehatan Provinsi Jawa Barat tahun 2024. Variabel independen meliputi persentase penduduk miskin, akses air minum layak, rumah layak huni, dan kepadatan penduduk. Analisis data menggunakan korelasi Pearson dan regresi linear berganda dengan tingkat signifikansi α = 0,05.
 
-**Hasil:** Prevalensi stunting bervariasi antara 7,2% (Kabupaten Cianjur) hingga 30,8% (Kabupaten Bandung Barat). Sebanyak 70,4% kabupaten/kota berada pada kategori prevalensi rendah menurut klasifikasi WHO (1995). Model regresi menunjukkan hasil **tidak signifikan secara statistik** (R² = 0,074; F = 0,437; p = 0,780). Tidak ditemukan korelasi signifikan antara variabel independen dengan prevalensi stunting (p > 0,05).
+**Hasil:** Prevalensi stunting bervariasi antara 7,2% hingga 30,8% dengan rata-rata 17,84%. Sebanyak 70,4% kabupaten/kota berada pada kategori prevalensi rendah menurut klasifikasi WHO (1995). Model regresi menunjukkan hasil tidak signifikan (R² = 0,074; p = 0,780). Tidak ditemukan korelasi signifikan antara variabel independen dengan prevalensi stunting (p > 0,05).
 
-**Kesimpulan:** Ketidaksignifikanan model disebabkan oleh dua faktor utama: (1) keterbatasan ukuran sampel (n = 27) yang menghasilkan *statistical power* rendah, dan (2) variabel determinan distal yang tersedia tidak menunjukkan korelasi kuat dengan stunting pada level agregat wilayah. Penelitian selanjutnya disarankan menggunakan unit analisis yang lebih granular (kecamatan/desa) atau data level individu.
+**Kesimpulan:** Model tidak signifikan disebabkan oleh keterbatasan ukuran sampel (n = 27) dan karakteristik variabel determinan distal yang hubungannya dengan stunting dimediasi oleh banyak faktor. Penelitian selanjutnya disarankan menggunakan unit analisis yang lebih granular atau data level individu.
 
-**Kata Kunci:** *stunting*, analisis spasial, studi ekologis, determinan sosial, Jawa Barat
+**Kata Kunci:** stunting, analisis spasial, studi ekologis, determinan sosial, Jawa Barat
 
 </div>
 
 ---
 
-# BAB I: PENDAHULUAN {#pendahuluan}
+# PENDAHULUAN
 
-## 1.1 Latar Belakang Masalah
+## Latar Belakang
 
-Stunting didefinisikan sebagai kondisi gagal tumbuh pada anak balita akibat kekurangan gizi kronis, terutama selama 1.000 Hari Pertama Kehidupan (HPK). Secara operasional, World Health Organization (WHO) mengklasifikasikan anak sebagai stunting apabila nilai *z-score* tinggi badan menurut umur (TB/U) berada di bawah -2 standar deviasi (SD) dari median *WHO Child Growth Standards* (WHO, 2006; de Onis & Branca, 2016).
+Stunting adalah kondisi gagal tumbuh pada anak balita akibat kekurangan gizi kronis, terutama selama 1.000 Hari Pertama Kehidupan (HPK). World Health Organization (WHO) mendefinisikan stunting sebagai kondisi di mana tinggi badan menurut umur (TB/U) anak berada di bawah -2 standar deviasi (SD) dari median standar pertumbuhan anak WHO (WHO, 2006). Stunting memiliki dampak jangka panjang terhadap perkembangan kognitif, produktivitas ekonomi, dan risiko penyakit tidak menular di masa dewasa (Victora et al., 2008).
 
-Stunting bukan sekadar masalah pertumbuhan fisik, melainkan memiliki implikasi jangka panjang terhadap perkembangan kognitif, produktivitas ekonomi, dan risiko penyakit tidak menular di masa dewasa (Victora et al., 2008; Black et al., 2013). Oleh karena itu, penurunan prevalensi stunting menjadi salah satu target *Sustainable Development Goals* (SDGs) dan prioritas pembangunan kesehatan nasional.
+Indonesia merupakan salah satu negara dengan beban stunting tertinggi di dunia. Data Survei Status Gizi Indonesia (SSGI) tahun 2022 menunjukkan prevalensi stunting nasional sebesar 21,6% (Kemenkes RI, 2023). Provinsi Jawa Barat, sebagai provinsi dengan jumlah penduduk terbesar di Indonesia, memiliki kontribusi signifikan terhadap angka stunting nasional.
 
-Indonesia merupakan salah satu negara dengan beban stunting tertinggi secara global. Data Survei Status Gizi Indonesia (SSGI) tahun 2022 menunjukkan prevalensi stunting nasional sebesar 21,6%, meskipun telah mengalami penurunan dari 24,4% pada tahun 2021 (Kemenkes RI, 2023). Provinsi Jawa Barat, sebagai provinsi dengan jumlah penduduk terbesar di Indonesia (sekitar 49 juta jiwa), memiliki kontribusi signifikan terhadap angka absolut balita stunting nasional.
+Pemahaman mengenai distribusi spasial dan determinan stunting pada level wilayah penting untuk perencanaan intervensi berbasis bukti. Studi ekologis memungkinkan eksplorasi hubungan antara karakteristik wilayah dengan *outcome* kesehatan, meskipun dengan keterbatasan interpretasi yang perlu diperhatikan (Morgenstern, 1995).
 
-Pemahaman mengenai distribusi spasial dan determinan stunting pada level wilayah menjadi penting untuk perencanaan intervensi berbasis bukti (*evidence-based intervention*). Studi ekologis memungkinkan eksplorasi hubungan antara karakteristik wilayah dengan outcome kesehatan, meskipun dengan keterbatasan interpretasi yang perlu diperhatikan.
+## Rumusan Masalah
 
-## 1.2 Rumusan Masalah
+Berdasarkan latar belakang di atas, rumusan masalah penelitian ini adalah:
 
-Berdasarkan latar belakang di atas, penelitian ini merumuskan pertanyaan penelitian sebagai berikut:
+1. Bagaimana distribusi prevalensi stunting balita antar kabupaten/kota di Provinsi Jawa Barat tahun 2024?
+2. Apakah terdapat hubungan antara determinan sosial ekonomi dengan prevalensi stunting pada level kabupaten/kota?
 
-1. Bagaimana distribusi dan variasi prevalensi stunting balita antar kabupaten/kota di Provinsi Jawa Barat tahun 2024?
-2. Bagaimana pola spasial (*spatial pattern*) prevalensi stunting di Provinsi Jawa Barat?
-3. Apakah terdapat hubungan yang signifikan antara determinan sosial ekonomi (kemiskinan, akses air minum layak, rumah layak huni, kepadatan penduduk) dengan prevalensi stunting pada level kabupaten/kota?
+## Tujuan Penelitian
 
-## 1.3 Tujuan Penelitian
+**Tujuan Umum:** Menganalisis distribusi spasial dan determinan sosial ekonomi prevalensi stunting balita di Provinsi Jawa Barat tahun 2024.
 
-### 1.3.1 Tujuan Umum
+**Tujuan Khusus:**
 
-Menganalisis distribusi spasial dan determinan sosial ekonomi prevalensi stunting balita di Provinsi Jawa Barat tahun 2024.
+1. Mendeskripsikan prevalensi stunting balita di setiap kabupaten/kota
+2. Menganalisis korelasi antara variabel determinan dengan prevalensi stunting
+3. Membangun model regresi linear berganda untuk mengidentifikasi prediktor signifikan
 
-### 1.3.2 Tujuan Khusus
+## Manfaat Penelitian
 
-1. Mendeskripsikan prevalensi stunting balita di setiap kabupaten/kota berdasarkan klasifikasi WHO (1995)
-2. Memetakan distribusi spasial prevalensi stunting menggunakan visualisasi koroplet
-3. Menganalisis korelasi bivariat antara variabel determinan dengan prevalensi stunting
-4. Membangun dan mengevaluasi model regresi linear berganda untuk mengidentifikasi prediktor signifikan
-
-## 1.4 Manfaat Penelitian
-
-### 1.4.1 Manfaat Teoritis
-
-Penelitian ini berkontribusi pada pemahaman mengenai aplikasi studi ekologis dalam epidemiologi gizi, termasuk keterbatasan dan implikasinya terhadap interpretasi hasil.
-
-### 1.4.2 Manfaat Praktis
-
-Hasil penelitian dapat menjadi masukan bagi pengambil kebijakan di tingkat provinsi dan kabupaten/kota dalam perencanaan program intervensi stunting berbasis wilayah.
+Hasil penelitian dapat menjadi masukan bagi pengambil kebijakan dalam perencanaan program intervensi stunting berbasis wilayah di Provinsi Jawa Barat.
 
 ---
 
-# BAB II: TINJAUAN PUSTAKA {#tinjauan-pustaka}
+# TINJAUAN PUSTAKA
 
-## 2.1 Definisi dan Pengukuran Stunting
+## Definisi Stunting
 
-Stunting merupakan manifestasi dari kekurangan gizi kronis yang terjadi sejak masa prenatal hingga dua tahun pertama kehidupan. WHO mendefinisikan stunting sebagai kondisi di mana tinggi badan menurut umur (TB/U) anak berada di bawah -2 SD dari median referensi pertumbuhan WHO (WHO, 2006).
+Stunting adalah kondisi gagal tumbuh pada anak balita akibat kekurangan gizi kronis. WHO mendefinisikan stunting sebagai kondisi di mana tinggi badan menurut umur (TB/U) anak berada di bawah -2 standar deviasi dari median standar pertumbuhan WHO (WHO, 2006). Stunting merupakan manifestasi dari kekurangan gizi yang terjadi sejak masa prenatal hingga dua tahun pertama kehidupan.
 
-Pengukuran stunting menggunakan indeks antropometri *Height-for-Age Z-score* (HAZ) dengan formula:
+## Determinan Stunting
 
-$$HAZ = \frac{TB_{observed} - TB_{median}}{SD_{reference}}$$
+Berdasarkan kerangka konseptual UNICEF (2013), determinan stunting dibagi menjadi tiga tingkatan:
 
-Interpretasi nilai HAZ:
-
-- HAZ < -3 SD: *Severely stunted* (sangat pendek)
-- -3 SD ≤ HAZ < -2 SD: *Stunted* (pendek)
-- HAZ ≥ -2 SD: Normal
-
-## 2.2 Kerangka Konseptual Determinan Stunting
-
-### 2.2.1 Model UNICEF (2013)
-
-Kerangka konseptual UNICEF mengidentifikasi determinan stunting dalam tiga tingkatan hierarkis:
-
-```{r unicef-framework, echo=FALSE, fig.cap="Kerangka Konseptual Determinan Stunting (Adaptasi dari UNICEF, 2013)"}
+```{r unicef-framework, echo=FALSE}
 unicef_df <- data.frame(
-  Level = c("Penyebab Langsung\n(Immediate Causes)", 
-            "Penyebab Tidak Langsung\n(Underlying Causes)", 
-            "Penyebab Dasar\n(Basic Causes)"),
+  Level = c("Penyebab Langsung", "Penyebab Tidak Langsung", "Penyebab Dasar"),
   Determinan = c(
-    "Asupan gizi tidak adekuat\nPenyakit infeksi berulang",
-    "Ketahanan pangan rumah tangga\nPola asuh dan praktik pemberian makan\nAkses air bersih dan sanitasi\nAkses layanan kesehatan",
-    "Kemiskinan dan ketimpangan\nTingkat pendidikan\nKebijakan dan tata kelola"
+    "Asupan gizi tidak adekuat, penyakit infeksi berulang",
+    "Ketahanan pangan, pola asuh, akses air bersih dan sanitasi, akses layanan kesehatan",
+    "Kemiskinan, tingkat pendidikan, kebijakan"
   ),
-  `Jarak ke Outcome` = c("Proksimal", "Intermediate", "Distal")
+  Jarak = c("Proksimal", "Intermediate", "Distal")
 )
 
 kable(unicef_df, 
-      col.names = c("Level Determinan", "Faktor-faktor", "Jarak ke Outcome"),
-      caption = "Hierarki Determinan Stunting berdasarkan Kerangka UNICEF (2013)") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = TRUE) %>%
-  column_spec(1, bold = TRUE, width = "25%") %>%
-  column_spec(2, width = "50%") %>%
-  column_spec(3, width = "25%")
+      col.names = c("Level", "Determinan", "Jarak ke Outcome"),
+      caption = "Tabel 1. Hierarki Determinan Stunting (UNICEF, 2013)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE)
 ```
 
-### 2.2.2 Model Epidemiologi Agent-Host-Environment
+## Klasifikasi Prevalensi Stunting
 
-Dalam perspektif epidemiologi klasik, stunting dapat dianalisis menggunakan model *epidemiological triad*:
-
-```{r ahe-model, echo=FALSE}
-ahe_df <- data.frame(
-  Komponen = c("**Agent** (Agen Penyebab)", 
-               "**Host** (Pejamu/Anak)", 
-               "**Environment** (Lingkungan)"),
-  Deskripsi = c(
-    "Defisiensi zat gizi makro (protein-energi) dan mikro (zinc, iron, vitamin A); Agen infeksius penyebab diare, ISPA, dan infeksi parasit",
-    "Karakteristik anak: usia (periode kritis 0-24 bulan), jenis kelamin, berat badan lahir, status imunitas, riwayat penyakit",
-    "Faktor lingkungan fisik (sanitasi, air bersih, kualitas hunian) dan sosial ekonomi (kemiskinan, pendidikan orang tua, akses layanan kesehatan)"
-  ),
-  `Relevansi dengan Variabel Penelitian` = c(
-    "Tidak tersedia data pada level agregat",
-    "Tidak tersedia data pada level agregat",
-    "Tersedia: kemiskinan, air minum layak, rumah layak huni, kepadatan penduduk"
-  )
-)
-
-kable(ahe_df, 
-      col.names = c("Komponen Triad", "Deskripsi", "Ketersediaan Data"),
-      caption = "Model Agent-Host-Environment untuk Stunting") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = TRUE) %>%
-  column_spec(1, bold = TRUE, width = "20%")
-```
-
-## 2.3 Klasifikasi Prevalensi Stunting
-
-Klasifikasi tingkat keparahan masalah stunting pada level populasi mengacu pada **WHO (1995) Technical Report Series No. 854**:
+Klasifikasi tingkat keparahan stunting pada level populasi mengacu pada WHO (1995):
 
 ```{r who-classification, echo=FALSE}
 who_df <- data.frame(
-  Kategori = c("Rendah (*Low*)", "Sedang (*Medium*)", "Tinggi (*High*)", "Sangat Tinggi (*Very High*)"),
-  `Prevalensi` = c("< 20%", "20% - 29%", "30% - 39%", "≥ 40%"),
-  `Interpretasi` = c(
-    "Masalah gizi ringan, perlu pemantauan rutin",
-    "Masalah gizi sedang, perlu intervensi terarah",
-    "Masalah gizi berat, perlu intervensi intensif",
-    "Krisis gizi, perlu respons darurat"
-  )
+  Kategori = c("Rendah", "Sedang", "Tinggi", "Sangat Tinggi"),
+  Prevalensi = c("< 20%", "20-29%", "30-39%", ">= 40%")
 )
 
 kable(who_df, 
-      col.names = c("Kategori", "Prevalensi", "Interpretasi Program"),
-      caption = "Klasifikasi Prevalensi Stunting menurut WHO (1995)") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = FALSE) %>%
-  column_spec(1, bold = TRUE)
+      col.names = c("Kategori", "Prevalensi"),
+      caption = "Tabel 2. Klasifikasi Prevalensi Stunting (WHO, 1995)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
 ```
 
-## 2.4 Studi Ekologis dalam Epidemiologi
+## Studi Ekologis
 
-Studi ekologis (*ecological study*) merupakan desain penelitian observasional di mana unit analisis adalah kelompok atau agregat populasi (misalnya wilayah administratif), bukan individu (Morgenstern, 1995).
-
-### 2.4.1 Kelebihan Studi Ekologis
-
-1. **Efisiensi sumber daya:** Memanfaatkan data sekunder yang telah tersedia
-2. **Cakupan luas:** Memungkinkan analisis pada skala populasi besar
-3. **Generasi hipotesis:** Berguna untuk eksplorasi awal hubungan variabel
-
-### 2.4.2 Keterbatasan dan *Ecological Fallacy*
-
-Keterbatasan utama studi ekologis adalah potensi terjadinya ***ecological fallacy*** (Robinson, 1950), yaitu kesalahan inferensi yang terjadi ketika hubungan yang ditemukan pada level agregat diasumsikan berlaku pada level individu.
-
-> **Contoh:** Jika ditemukan korelasi positif antara kemiskinan wilayah dengan prevalensi stunting, tidak dapat disimpulkan bahwa anak dari keluarga miskin lebih berisiko stunting berdasarkan data agregat saja.
+Studi ekologis adalah desain penelitian observasional dengan unit analisis berupa kelompok atau agregat populasi, bukan individu (Morgenstern, 1995). Keterbatasan utama studi ekologis adalah potensi terjadinya *ecological fallacy*, yaitu kesalahan inferensi ketika hubungan pada level agregat diasumsikan berlaku pada level individu (Robinson, 1950).
 
 ---
 
-# BAB III: METODE PENELITIAN {#metode}
+# METODE PENELITIAN
 
-## 3.1 Desain Penelitian
+## Desain Penelitian
 
 Penelitian ini menggunakan desain **studi ekologis *cross-sectional*** dengan pendekatan analitik. Unit analisis adalah 27 kabupaten/kota di Provinsi Jawa Barat.
 
@@ -249,13 +159,12 @@ kable(design_df,
                 full_width = FALSE)
 ```
 
-## 3.2 Populasi dan Sampel
+## Populasi dan Sampel
 
 - **Populasi:** Seluruh kabupaten/kota di Provinsi Jawa Barat
 - **Sampel:** Total sampling (n = 27 kabupaten/kota)
-- **Kriteria inklusi:** Kabupaten/kota dengan data lengkap untuk semua variabel
 
-## 3.3 Sumber Data
+## Sumber Data
 
 Data penelitian bersumber dari:
 
@@ -284,13 +193,11 @@ kable(source_df,
                 full_width = TRUE)
 ```
 
-## 3.4 Variabel Penelitian
+## Variabel Penelitian
 
-### 3.4.1 Variabel Dependen
+**Variabel Dependen:** Prevalensi stunting balita (%), yaitu persentase balita dengan status gizi pendek dan sangat pendek (TB/U < -2 SD) di setiap kabupaten/kota.
 
-**Prevalensi stunting balita (%):** Persentase balita dengan status gizi pendek dan sangat pendek (TB/U < -2 SD) di setiap kabupaten/kota.
-
-### 3.4.2 Variabel Independen
+**Variabel Independen:**
 
 ```{r variables-table, echo=FALSE}
 var_df <- data.frame(
@@ -323,7 +230,7 @@ kable(var_df,
   column_spec(7, width = "12%")
 ```
 
-## 3.5 Analisis Data
+## Analisis Data
 
 Analisis data dilakukan secara bertahap:
 
@@ -357,30 +264,11 @@ kable(analysis_df,
                 full_width = TRUE)
 ```
 
-### 3.5.1 Model Regresi Linear Berganda
-
-Model regresi yang digunakan:
-
-$$Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \beta_3X_3 + \beta_4X_4 + \epsilon$$
-
-Di mana:
-
-- $Y$ = Prevalensi stunting (%)
-- $X_1$ = Persentase penduduk miskin
-- $X_2$ = Akses air minum layak (%)
-- $X_3$ = Rumah layak huni (%)
-- $X_4$ = Kepadatan penduduk (jiwa/km²)
-- $\epsilon$ = Error term
-
-## 3.6 Pertimbangan Etik
-
-Penelitian ini menggunakan data sekunder agregat yang tidak mengandung informasi identitas individu, sehingga tidak memerlukan persetujuan etik (*ethical clearance*).
-
 ---
 
-# BAB IV: HASIL PENELITIAN {#hasil}
+# HASIL PENELITIAN
 
-## 4.1 Karakteristik Data
+## Karakteristik Data
 
 Penelitian ini menganalisis data dari 27 kabupaten/kota di Provinsi Jawa Barat tahun 2024. Tabel berikut menyajikan statistik deskriptif untuk seluruh variabel yang dianalisis.
 
@@ -403,7 +291,7 @@ kable(desk_df, caption = "Statistik Deskriptif Variabel Analisis (n=27)", digits
   column_spec(1, bold = TRUE)
 ```
 
-## 4.2 Distribusi Prevalensi Stunting
+## Distribusi Prevalensi Stunting
 
 Berdasarkan klasifikasi WHO (1995), distribusi kabupaten/kota menurut tingkat keparahan prevalensi stunting disajikan pada tabel berikut:
 
@@ -424,7 +312,7 @@ kable(dist_df,
 
 Temuan menunjukkan bahwa mayoritas kabupaten/kota (70,4%) berada pada kategori prevalensi **rendah** (< 20%). Hanya satu kabupaten (Kabupaten Bandung Barat) yang berada pada kategori **tinggi** dengan prevalensi 30,8%. Tidak ada kabupaten/kota yang masuk kategori sangat tinggi (≥ 40%).
 
-## 4.3 Uji Asumsi: Multikolinearitas
+## Uji Multikolinearitas
 
 Sebelum melakukan analisis regresi berganda, dilakukan pemeriksaan multikolinearitas menggunakan *Variance Inflation Factor* (VIF):
 
@@ -444,7 +332,7 @@ kable(vif_df,
 
 Seluruh nilai VIF berada di bawah 5, mengindikasikan **tidak terdapat masalah multikolinearitas** antar variabel independen (Hair et al., 2019).
 
-## 4.4 Analisis Bivariat: Korelasi Pearson
+## Analisis Korelasi
 
 Hasil analisis korelasi bivariat antara masing-masing variabel independen dengan prevalensi stunting:
 
@@ -466,9 +354,7 @@ kable(kor_df,
 
 **Temuan:** Tidak ada variabel independen yang menunjukkan korelasi signifikan dengan prevalensi stunting pada tingkat signifikansi α = 0,05. Korelasi terkuat (meskipun tidak signifikan) adalah antara rumah layak huni dengan stunting (r = -0,244; p = 0,221).
 
-## 4.5 Analisis Multivariat: Regresi Linear Berganda
-
-### 4.5.1 Koefisien Regresi
+## Analisis Regresi
 
 ```{r regresi, echo=FALSE}
 reg_df <- data.frame(
@@ -487,163 +373,66 @@ kable(reg_df,
                 full_width = FALSE)
 ```
 
-### 4.5.2 Ringkasan Model (*Model Summary*)
-
 ```{r model-summary, echo=FALSE}
 model_df <- data.frame(
-  Parameter = c("Jumlah observasi (n)", "R²", "Adjusted R²", "F-statistic", "p-value (F-test)", "**Status Model**"),
-  Nilai = c("27", "0,074 (7,4%)", "-0,095", "0,437", "0,780", "**TIDAK SIGNIFIKAN**")
+  Parameter = c("n", "R²", "Adjusted R²", "F", "p-value"),
+  Nilai = c("27", "0,074", "-0,095", "0,437", "0,780")
 )
 
 kable(model_df, 
       col.names = c("Parameter", "Nilai"),
       caption = "Ringkasan Model Regresi") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = FALSE) %>%
-  row_spec(6, bold = TRUE, color = "red")
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
 ```
 
-**Interpretasi:** Model regresi secara keseluruhan **tidak signifikan** (F = 0,437; p = 0,780 > 0,05). Nilai R² = 0,074 menunjukkan bahwa hanya 7,4% variasi prevalensi stunting yang dapat dijelaskan oleh keempat variabel independen. Nilai *Adjusted* R² yang negatif (-0,095) mengindikasikan bahwa model tidak memiliki kemampuan prediktif yang baik.
+Model regresi secara keseluruhan **tidak signifikan** (p = 0,780 > 0,05). Nilai R² = 0,074 menunjukkan bahwa hanya 7,4% variasi prevalensi stunting yang dapat dijelaskan oleh keempat variabel independen.
 
 ---
 
-# BAB V: PEMBAHASAN {#pembahasan}
+# PEMBAHASAN
 
-## 5.1 Interpretasi Hasil Analisis
+## Interpretasi Hasil
 
-Hasil penelitian menunjukkan bahwa model regresi yang dibangun **tidak signifikan secara statistik** (p = 0,780). Temuan ini memerlukan interpretasi yang cermat dalam konteks metodologis dan substantif.
+Hasil penelitian menunjukkan bahwa model regresi yang dibangun tidak signifikan secara statistik. Terdapat dua faktor utama yang menjelaskan temuan ini:
 
-## 5.2 Faktor Penyebab Ketidaksignifikanan Model
+**1. Keterbatasan Ukuran Sampel**
 
-Terdapat dua faktor utama yang menjelaskan mengapa model tidak signifikan:
+Dengan hanya n = 27 unit observasi, *statistical power* untuk mendeteksi efek sangat terbatas. Menurut Green (1991), untuk regresi berganda dengan 4 prediktor diperlukan minimal n = 82 observasi.
 
-### 5.2.1 Keterbatasan Ukuran Sampel (*Sample Size Limitation*)
+**2. Karakteristik Variabel Determinan Distal**
 
-Dengan hanya **n = 27** unit observasi (kabupaten/kota), *statistical power* untuk mendeteksi efek yang ada sangat terbatas. Menurut Green (1991), untuk regresi berganda dengan 4 prediktor, diperlukan minimal n = 50 + 8k = 50 + 8(4) = **82 observasi** untuk mendeteksi efek medium.
+Variabel yang tersedia (kemiskinan, akses air minum, rumah layak huni, kepadatan penduduk) merupakan determinan distal dalam kerangka UNICEF. Hubungan antara determinan distal dengan stunting bersifat tidak langsung dan dimediasi oleh banyak faktor (UNICEF, 2013).
 
-```{r power-analysis, echo=FALSE}
-power_df <- data.frame(
-  `Ukuran Sampel` = c("n = 27 (penelitian ini)", "n = 50", "n = 82 (minimal)", "n = 539 (level kecamatan)"),
-  `Power Statistik` = c("< 50% (sangat rendah)", "~60%", "~80% (memadai)", "> 95% (optimal)"),
-  Keterangan = c(
-    "Tidak cukup untuk mendeteksi efek kecil hingga sedang",
-    "Minimal untuk analisis regresi sederhana",
-    "Memenuhi rule of thumb Green (1991)",
-    "Optimal untuk analisis multivariat kompleks"
-  )
-)
+## Keterbatasan Penelitian
 
-kable(power_df, 
-      col.names = c("Ukuran Sampel", "Estimasi Power", "Keterangan"),
-      caption = "Perbandingan Statistical Power berdasarkan Ukuran Sampel") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = FALSE)
-```
-
-### 5.2.2 Karakteristik Variabel Determinan Distal
-
-Variabel yang tersedia dalam penelitian ini (kemiskinan, akses air minum, rumah layak huni, kepadatan penduduk) merupakan **determinan distal** dalam kerangka UNICEF. Hubungan antara determinan distal dengan stunting bersifat tidak langsung dan dimediasi oleh banyak faktor antara (*intermediate factors*).
-
-```{r causal-pathway, echo=FALSE}
-pathway_df <- data.frame(
-  Level = c("**Distal** (Penyebab Dasar)", "**Intermediate**", "**Proksimal** (Penyebab Langsung)"),
-  Variabel = c(
-    "Kemiskinan, pendidikan, infrastruktur dasar",
-    "Ketahanan pangan, pola asuh, akses layanan kesehatan",
-    "Asupan gizi, penyakit infeksi, ASI eksklusif"
-  ),
-  `Ketersediaan Data` = c("Tersedia dalam penelitian ini", "Tidak tersedia", "Tidak tersedia"),
-  `Kekuatan Asosiasi` = c("Lemah (efek dimediasi)", "Sedang", "Kuat (efek langsung)")
-)
-
-kable(pathway_df, 
-      col.names = c("Level Determinan", "Contoh Variabel", "Ketersediaan Data", "Kekuatan Asosiasi dengan Stunting"),
-      caption = "Jalur Kausal (*Causal Pathway*) Determinan Stunting") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = TRUE) %>%
-  column_spec(1, bold = TRUE)
-```
-
-**Implikasi:** Untuk mendapatkan hubungan yang signifikan secara statistik, diperlukan data determinan **proksimal** seperti:
-
-- Cakupan ASI eksklusif
-- Status imunisasi dasar lengkap
-- Insidensi penyakit infeksi (diare, ISPA)
-- Pola pemberian makan anak (*Infant and Young Child Feeding*/IYCF)
-- Status gizi ibu selama kehamilan
-
-## 5.3 Implikasi *Ecological Fallacy*
-
-Meskipun model tidak signifikan, interpretasi hasil tetap harus mempertimbangkan potensi *ecological fallacy*:
-
-> **Catatan Penting:** Hubungan yang ditemukan (atau tidak ditemukan) pada level agregat kabupaten/kota **tidak dapat** langsung diinterpretasikan pada level individu. Variasi internal dalam setiap kabupaten/kota tersembunyi dalam data agregat.
-
-## 5.4 Keterbatasan Penelitian
-
-Penelitian ini memiliki beberapa keterbatasan yang perlu diperhatikan:
-
-```{r limitations, echo=FALSE}
-limit_df <- data.frame(
-  No = 1:5,
-  Keterbatasan = c(
-    "Desain studi ekologis",
-    "Ukuran sampel kecil",
-    "Data cross-sectional",
-    "Variabel terbatas",
-    "Missing data"
-  ),
-  Implikasi = c(
-    "Rentan terhadap ecological fallacy; hasil tidak dapat digeneralisasi ke level individu",
-    "n = 27 menghasilkan statistical power yang rendah untuk mendeteksi efek",
-    "Tidak dapat menetapkan hubungan kausal (temporalitas tidak dapat dipastikan)",
-    "Hanya tersedia determinan distal; tidak ada data proksimal",
-    "Variabel sanitasi tidak tersedia lengkap untuk semua kabupaten/kota"
-  )
-)
-
-kable(limit_df, 
-      col.names = c("No", "Keterbatasan", "Implikasi"),
-      caption = "Keterbatasan Penelitian dan Implikasinya") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "bordered"), 
-                full_width = TRUE)
-```
+1. **Desain ekologis:** Rentan terhadap *ecological fallacy*
+2. **Ukuran sampel kecil:** n = 27 menghasilkan *statistical power* rendah
+3. **Data cross-sectional:** Tidak dapat menetapkan hubungan kausal
+4. **Variabel terbatas:** Hanya tersedia determinan distal
 
 ---
 
-# BAB VI: KESIMPULAN DAN SARAN {#kesimpulan}
+# KESIMPULAN DAN SARAN
 
-## 6.1 Kesimpulan
+## Kesimpulan
 
-Berdasarkan hasil penelitian dan pembahasan, dapat disimpulkan:
+1. Prevalensi stunting di Provinsi Jawa Barat tahun 2024 bervariasi antara 7,2% hingga 30,8%. Sebanyak 70,4% kabupaten/kota berada pada kategori prevalensi rendah (< 20%) menurut klasifikasi WHO (1995).
 
-1. **Distribusi Prevalensi:** Prevalensi stunting balita di Provinsi Jawa Barat tahun 2024 bervariasi antara 7,2% (Kabupaten Cianjur) hingga 30,8% (Kabupaten Bandung Barat). Sebanyak 70,4% kabupaten/kota berada pada kategori prevalensi **rendah** (< 20%) menurut klasifikasi WHO (1995).
+2. Model regresi linear berganda tidak signifikan (R² = 0,074; p = 0,780). Tidak ditemukan korelasi signifikan antara variabel determinan dengan prevalensi stunting.
 
-2. **Hasil Analisis Statistik:** Model regresi linear berganda yang dibangun **tidak signifikan secara statistik** (R² = 0,074; F = 0,437; p = 0,780). Tidak ditemukan korelasi signifikan antara variabel determinan sosial ekonomi dengan prevalensi stunting pada tingkat signifikansi α = 0,05.
+3. Ketidaksignifikanan model disebabkan oleh keterbatasan ukuran sampel (n = 27) dan karakteristik variabel determinan distal.
 
-3. **Penyebab Ketidaksignifikanan:** Ketidaksignifikanan model disebabkan oleh dua faktor utama:
-   - **Keterbatasan ukuran sampel** (n = 27) yang menghasilkan *statistical power* rendah
-   - **Karakteristik variabel determinan distal** yang hubungannya dengan stunting dimediasi oleh banyak faktor antara
+## Saran
 
-## 6.2 Saran
+**Untuk Penelitian Selanjutnya:**
 
-### 6.2.1 Saran untuk Penelitian Selanjutnya
+1. Menggunakan unit analisis level kecamatan atau desa untuk meningkatkan *statistical power*
+2. Mengumpulkan data determinan proksimal (ASI eksklusif, imunisasi, penyakit infeksi)
 
-1. Menggunakan unit analisis yang lebih granular (level kecamatan dengan n = 539 atau level desa) untuk meningkatkan *statistical power*
-2. Mengumpulkan dan menganalisis data determinan proksimal (ASI eksklusif, imunisasi, penyakit infeksi, pola makan)
-3. Mempertimbangkan desain *panel data* multi-tahun untuk mengeksplorasi tren temporal
-4. Menggunakan pendekatan *multilevel modeling* untuk mengakomodasi struktur hierarkis data
+**Untuk Kebijakan:**
 
-### 6.2.2 Saran untuk Kebijakan
-
-1. Memprioritaskan intervensi di Kabupaten Bandung Barat sebagai satu-satunya kabupaten dengan kategori prevalensi tinggi
-2. Melakukan investigasi mendalam terhadap faktor-faktor lokal spesifik yang mungkin berkontribusi terhadap variasi antar wilayah
-3. Mengintegrasikan data surveilans gizi dengan data sosial ekonomi untuk analisis yang lebih komprehensif
-
-### 6.2.3 Saran untuk Program
-
-1. Memperkuat sistem surveilans gizi berbasis data mikro (level individu/rumah tangga)
-2. Mengumpulkan data determinan proksimal secara rutin dalam sistem informasi kesehatan
-3. Mengembangkan *dashboard* monitoring stunting yang terintegrasi dengan berbagai sumber data
+1. Memprioritaskan intervensi di Kabupaten Bandung Barat (prevalensi tertinggi)
+2. Memperkuat sistem surveilans gizi berbasis data mikro
 
 ---
 
