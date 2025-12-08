@@ -56,24 +56,51 @@ st.markdown("""
 @st.cache_data
 def load_data():
     """Load and preprocess data with proper NaN handling"""
-    df = pd.read_csv("df_analisis_stunting_jabar_2024.csv")
+    try:
+        df = pd.read_csv('df_analisis_stunting_jabar_2024.csv')
+        
+        # Validate required columns
+        required_cols = ['prevalensi_stunting', 'jumlah_stunting', 'kepadatan_penduduk', 
+                        'persen_air_minum_layak', 'persen_miskin', 'persen_rumah_layak']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Kolom yang diperlukan tidak ditemukan: {missing_cols}")
+        
+        # Rename columns
+        df = df.rename(columns={
+            'prevalensi_stunting': 'persen_stunting',
+            'persen_rumah_layak': 'persen_rumah_layak_huni'
+        })
+        
+        # Data validation
+        if len(df) == 0:
+            raise ValueError("Dataset kosong")
+        
+        # Validate numeric columns
+        numeric_cols = ['persen_stunting', 'jumlah_stunting', 'kepadatan_penduduk', 
+                       'persen_air_minum_layak', 'persen_miskin', 'persen_rumah_layak_huni']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        df['kode_kabkota'] = df['kode_kabkota'].astype(str)
     
-    # Rename columns
-    df = df.rename(columns={
-        'prevalensi_stunting': 'persen_stunting',
-        'persen_rumah_layak': 'persen_rumah_layak_huni'
-    })
-    
-    df['kode_kabkota'] = df['kode_kabkota'].astype(str)
+    except Exception as e:
+        raise ValueError(f"Error memuat data: {str(e)}")
     
     # Klasifikasi WHO (1995) Technical Report Series No. 854, Table 39
     # Low (<20%), Medium (20-29%), High (30-39%), Very High (>=40%)
     def get_risk_level(val):
-        if pd.isna(val): return "No Data"
-        elif val < 20: return "Rendah"       # Low
-        elif val < 30: return "Sedang"       # Medium
-        elif val < 40: return "Tinggi"       # High
-        else: return "Sangat Tinggi"         # Very High
+        if pd.isna(val): 
+            return "No Data"
+        elif val < 20: 
+            return "Rendah"       # Low
+        elif val < 30: 
+            return "Sedang"       # Medium
+        elif val < 40: 
+            return "Tinggi"       # High
+        else: 
+            return "Sangat Tinggi"         # Very High
     
     df['risk_level'] = df['persen_stunting'].apply(get_risk_level)
     
@@ -82,8 +109,19 @@ def load_data():
 @st.cache_data
 def load_geojson():
     """Load GeoJSON"""
-    with open("gdf_stunting_simplified.geojson", 'r') as f:
-        return json.load(f)
+    try:
+        with open("gdf_stunting_simplified.geojson", 'r') as f:
+            geojson = json.load(f)
+        
+        # Validate GeoJSON structure
+        if 'features' not in geojson:
+            raise ValueError("GeoJSON tidak valid: missing 'features' key")
+        
+        return geojson
+    except FileNotFoundError:
+        raise FileNotFoundError("File gdf_stunting_simplified.geojson tidak ditemukan")
+    except json.JSONDecodeError:
+        raise ValueError("File GeoJSON tidak valid (corrupted)")
 
 # ============================================================================
 # VARIABEL PREDIKTOR - BERBASIS REFERENSI PENELITIAN
@@ -150,6 +188,30 @@ def calculate_correlation(df, x_var, y_var='persen_stunting'):
     r, p = stats.pearsonr(valid[x_var], valid[y_var])
     return r, p
 
+def calculate_vif(df, predictors):
+    """Calculate Variance Inflation Factor for multicollinearity check"""
+    from sklearn.linear_model import LinearRegression
+    
+    vif_data = []
+    for pred in predictors:
+        X = [p for p in predictors if p != pred]
+        if len(X) == 0:
+            vif = 1.0
+        else:
+            valid_df = df[[pred] + X].dropna()
+            if len(valid_df) < 3:
+                vif = np.nan
+            else:
+                X_vals = valid_df[X].values
+                y_vals = valid_df[pred].values
+                model = LinearRegression().fit(X_vals, y_vals)
+                r2 = model.score(X_vals, y_vals)
+                vif = 1 / (1 - r2) if r2 < 0.99 else np.nan
+        
+        vif_data.append({'Variabel': PREDICTORS[pred]['label'], 'VIF': vif})
+    
+    return pd.DataFrame(vif_data)
+
 def run_ols_model(df, predictors, y_var='persen_stunting'):
     """Run OLS regression with multiple predictors"""
     from sklearn.linear_model import LinearRegression
@@ -189,9 +251,13 @@ def main():
     st.title("Stunting Risk Explorer - Jawa Barat 2024")
     st.caption("Dashboard Analisis Spasial Prevalensi Stunting Balita")
     
-    # Load data
-    df = load_data()
-    geojson = load_geojson()
+    # Load data with error handling
+    try:
+        df = load_data()
+        geojson = load_geojson()
+    except Exception as e:
+        st.error(f"❌ Error memuat data: {str(e)}")
+        st.stop()
     
     # =========================================================================
     # SIDEBAR
@@ -200,7 +266,6 @@ def main():
     
     # Predictor selection based on research
     st.sidebar.subheader("Faktor Prediktor")
-    st.sidebar.caption("Pilih variabel berdasarkan kerangka konseptual UNICEF")
     
     selected_predictors = st.sidebar.multiselect(
         "Pilih Prediktor:",
@@ -234,13 +299,13 @@ def main():
         low_risk = df[df['risk_level'] == 'Rendah'].shape[0]
         
         with col1:
-            st.metric("Total Kasus", f"{int(total_stunting):,}", f"n={len(df)} wilayah")
+            st.metric("Total Kasus", f"{int(total_stunting):,}")
         with col2:
-            st.metric("Rata-rata Prevalensi", f"{mean_prev:.1f}%", f"SD={df['persen_stunting'].std():.1f}")
+            st.metric("Rata-rata Prevalensi", f"{mean_prev:.1f}%")
         with col3:
-            st.metric("Risiko Tinggi", f"{high_risk} wilayah", f"{high_risk/len(df)*100:.0f}%")
+            st.metric("Risiko Tinggi", f"{high_risk} wilayah")
         with col4:
-            st.metric("Risiko Rendah", f"{low_risk} wilayah", f"{low_risk/len(df)*100:.0f}%")
+            st.metric("Risiko Rendah", f"{low_risk} wilayah")
         
         st.subheader("Peta Distribusi Risiko Stunting")
         
@@ -269,7 +334,7 @@ def main():
         
         st.plotly_chart(fig, use_container_width=True)
         
-        st.caption("Kategori: Rendah (<10%), Sedang (10-20%), Tinggi (20-30%), Sangat Tinggi (>30%)")
+        st.caption("Kategori: Rendah (<20%), Sedang (20-29%), Tinggi (30-39%), Sangat Tinggi (≥40%)")
     
     # =========================================================================
     # TAB 2: PROFIL WILAYAH
@@ -302,7 +367,6 @@ def main():
                 ("Jumlah Balita Stunting", f"{int(kab_data['jumlah_stunting']):,}"),
                 ("Kepadatan Penduduk", f"{format_value(kab_data['kepadatan_penduduk'], 0)} jiwa/km2"),
                 ("Akses Air Minum Layak", f"{format_value(kab_data['persen_air_minum_layak'])}%"),
-                ("Sanitasi Layak", f"{format_value(kab_data.get('persen_sanitasi_layak', np.nan))}%"),
                 ("Rumah Layak Huni", f"{format_value(kab_data['persen_rumah_layak_huni'])}%"),
                 ("Penduduk Miskin", f"{format_value(kab_data['persen_miskin'])}%"),
             ]
@@ -451,8 +515,33 @@ def main():
                 """)
         
         if len(selected_predictors) == 0:
-            st.warning("Pilih minimal satu prediktor di sidebar.")
+            st.warning("Pilih minimal satu prediktor di sidebar untuk melihat analisis.")
+            st.info("**Tip:** Pilih 'Kemiskinan (%)' dan 'Rumah Layak Huni (%)' untuk analisis awal yang komprehensif.")
             return
+        
+        # Multicollinearity Check
+        if len(selected_predictors) > 1:
+            st.subheader("Pemeriksaan Multikolinearitas (VIF)")
+            vif_df = calculate_vif(df, selected_predictors)
+            
+            # Add interpretation
+            def interpret_vif(vif):
+                if pd.isna(vif):
+                    return "Tidak dapat dihitung"
+                elif vif < 5:
+                    return "Rendah"
+                elif vif < 10:
+                    return "Sedang"
+                else:
+                    return "Tinggi"
+            
+            vif_df['Interpretasi'] = vif_df['VIF'].apply(interpret_vif)
+            st.dataframe(vif_df.style.format({'VIF': '{:.2f}'}), hide_index=True)
+            
+            st.caption("VIF < 5: Rendah, 5-10: Sedang, >10: Tinggi (multikolinearitas bermasalah)")
+            
+            if vif_df['VIF'].max() > 10:
+                st.warning("Terdapat multikolinearitas tinggi. Pertimbangkan menghapus salah satu variabel.")
         
         # Correlation Analysis
         st.subheader("Analisis Korelasi Bivariat")
@@ -661,10 +750,10 @@ def main():
         
         | Kategori | Prevalensi | Keterangan |
         |----------|------------|------------|
-        | Rendah | <10% | Di bawah target WHO |
-        | Sedang | 10-20% | Target nasional 2024 |
-        | Tinggi | 20-30% | Di atas target |
-        | Sangat Tinggi | >30% | Prioritas intervensi |
+        | Rendah | <20% | Rendah menurut WHO (1995) |
+        | Sedang | 20-29% | Sedang menurut WHO (1995) |
+        | Tinggi | 30-39% | Tinggi menurut WHO (1995) |
+        | Sangat Tinggi | ≥40% | Sangat tinggi menurut WHO (1995) |
         
         ### Keterbatasan
         
